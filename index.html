@@ -6,15 +6,12 @@
     <title>Controle de Pressão Arterial - Maria José Martins</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.autotable.min.js"></script>
+    <!-- CORREÇÃO: Trocado os scripts do cdnjs pelos da unpkg, recomendados na documentação oficial -->
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Calm Neutrals -->
-    <!-- Application Structure Plan: A single-page dashboard designed for simplicity and task-oriented use. The structure prioritizes the primary action—adding a new reading—by placing a clear input form at the top. Below the form, a new AI-powered analysis section offers data interpretation. This is followed by a dynamic table for detailed history and a line chart for visual trends. This flow guides the user from data entry to data understanding, enhancing the app's value. -->
-    <!-- Visualization & Content Choices: Report Info: Blood pressure logs (Date, Time, SYS/DIA). Goal: Easy logging, trend analysis, and simplified understanding. Presentation: 1) HTML Form. 2) HTML Table. 3) Line Chart (Chart.js). 4) ✨ Gemini Analysis Section: Uses an API call to get a text summary of the data. Interaction: A button triggers the API call and displays the returned text. Justification: This leverages an LLM to translate raw data into actionable insights, making health monitoring more accessible for non-experts. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -101,8 +98,8 @@
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                     <h2 class="text-2xl font-semibold text-teal-700">Histórico de Medições</h2>
                      <button id="download-pdf-btn" class="mt-4 sm:mt-0 bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition shadow-md">
-                        Baixar Histórico (PDF)
-                    </button>
+                         Baixar Histórico (PDF)
+                     </button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
@@ -125,11 +122,11 @@
                 <h2 class="text-2xl font-semibold mb-4 text-teal-700">Análise Inteligente</h2>
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                      <button id="analyze-btn" class="flex-1 bg-sky-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-transform transform hover:scale-105 shadow-md">
-                        ✨ Gerar Análise dos Dados
-                    </button>
+                         ✨ Gerar Análise dos Dados
+                     </button>
                      <button id="tip-btn" class="flex-1 bg-amber-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-transform transform hover:scale-105 shadow-md">
-                        ✨ Gerar Dica de Saúde
-                    </button>
+                         ✨ Gerar Dica de Saúde
+                     </button>
                 </div>
                 <div id="gemini-output" class="mt-4 p-4 bg-stone-100 rounded-lg min-h-[100px] border border-stone-200 text-stone-700 whitespace-pre-wrap">
                     <div id="loading-spinner" class="hidden mx-auto loader"></div>
@@ -140,12 +137,13 @@
         
         <footer class="text-center mt-8 py-4">
             <p class="text-sm text-stone-500">Atenção: Os dados são salvos apenas no seu navegador. Limpar o cache ou usar outro dispositivo não mostrará o histórico.</p>
+            <p class="text-xs text-stone-400 mt-2">Controle de Pressão Arterial desenvolvido por: <i class="font-medium">J. Vitor Martins</i></p>
         </footer>
     </div>
     
     <!-- Patient Data Modal -->
     <div id="patient-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 transform transition-transform scale-95">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 transform transition-transform scale-95 max-h-[90vh] overflow-y-auto">
             <h2 class="text-2xl font-bold mb-6 text-teal-800">Dados do Paciente</h2>
             
             <form id="patient-form" class="space-y-4">
@@ -249,10 +247,13 @@
             };
 
             let readings = JSON.parse(localStorage.getItem('pressureReadings_MJM')) || [
-                { id: 1, date: '2025-09-20', time: '09:30', sys: 190, dia: 100 }
+                { id: 1, date: '2025-09-21', time: '09:30', sys: 190, dia: 100 }
             ];
             
-            const GEMINI_API_KEY = "";
+            // ATENÇÃO: É uma má prática de segurança expor chaves de API no lado do cliente (frontend).
+            // Em um projeto real, essa chamada deveria ser feita por um backend seguro para proteger sua chave.
+            // Substitua a chave abaixo pela sua chave de API do Google AI Studio.
+            const GEMINI_API_KEY = "SUA_CHAVE_API_AQUI"; 
             const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
             
             const savePatientProfile = () => {
@@ -304,11 +305,11 @@
             };
             
             const handleSaveProfile = () => {
-                patientProfile.name = patientNameInput.value;
+                patientProfile.name = patientNameInput.value.trim();
                 patientProfile.dob = patientDobInput.value;
-                patientProfile.weightKg = parseFloat(patientWeightInput.value);
-                patientProfile.heightM = parseFloat(patientHeightInput.value);
-                patientProfile.conditions = patientConditionsInput.value;
+                patientProfile.weightKg = parseFloat(patientWeightInput.value) || 0;
+                patientProfile.heightM = parseFloat(patientHeightInput.value) || 0;
+                patientProfile.conditions = patientConditionsInput.value.trim();
                 savePatientProfile();
                 renderAll();
                 toggleModal(false);
@@ -325,20 +326,30 @@
                         });
 
                         if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
+                           const errorBody = await response.json();
+                           console.error('Erro na API Gemini:', errorBody);
+                           // Se for erro de API Key inválida, avisa o usuário.
+                           if (errorBody.error && errorBody.error.message.includes("API key not valid")) {
+                               return "Erro: A chave de API não é válida. Verifique a chave no código e tente novamente.";
+                           }
+                           throw new Error(`HTTP error! status: ${response.status}`);
                         }
 
                         const result = await response.json();
                         if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
                             return result.candidates[0].content.parts[0].text;
                         } else {
-                            throw new Error('Resposta da API inválida.');
+                            const finishReason = result.candidates?.[0]?.finishReason;
+                            if (finishReason && finishReason !== 'STOP') {
+                                return `A análise não pôde ser gerada. Motivo: ${finishReason}. Tente novamente.`;
+                            }
+                            throw new Error('Resposta da API inválida ou vazia.');
                         }
                     } catch (error) {
                         attempt++;
+                        console.error(`Tentativa ${attempt} de chamar a API Gemini falhou:`, error);
                         if (attempt >= maxRetries) {
-                            console.error("Erro ao chamar a API Gemini:", error);
-                            return "Desculpe, não foi possível obter uma resposta da análise inteligente no momento. Tente novamente mais tarde.";
+                            return "Desculpe, não foi possível obter uma resposta da análise inteligente no momento. Verifique sua conexão e a chave de API.";
                         }
                         const delay = Math.pow(2, attempt) * 1000;
                         await new Promise(res => setTimeout(res, delay));
@@ -411,7 +422,7 @@
             const formatPressureValue = (value) => {
                 const num = parseInt(value, 10);
                 if (isNaN(num)) return '000';
-                return String(num).padStart(3, '0');
+                return String(num); // PDF doesn't need padding
             };
 
             const renderTable = () => {
@@ -433,7 +444,7 @@
                     row.innerHTML = `
                         <td class="p-3">${formattedDate}</td>
                         <td class="p-3">${reading.time}</td>
-                        <td class="p-3 font-medium">${formatPressureValue(reading.sys)} / ${formatPressureValue(reading.dia)}</td>
+                        <td class="p-3 font-medium">${reading.sys} / ${reading.dia}</td>
                         <td class="p-3 text-center">
                             <button data-id="${reading.id}" class="delete-btn text-red-500 hover:text-red-700 font-semibold text-sm">Excluir</button>
                         </td>
@@ -458,8 +469,8 @@
                         {
                             label: 'Sistólica (SYS)',
                             data: sysData,
-                            borderColor: 'rgb(20, 83, 45)',
-                            backgroundColor: 'rgba(20, 83, 45, 0.5)',
+                            borderColor: '#b91c1c', // red-700
+                            backgroundColor: 'rgba(185, 28, 28, 0.5)',
                             tension: 0.1,
                             pointRadius: 5,
                             pointHoverRadius: 8
@@ -467,8 +478,8 @@
                         {
                             label: 'Diastólica (DIA)',
                             data: diaData,
-                            borderColor: 'rgb(6, 122, 75)',
-                            backgroundColor: 'rgba(6, 122, 75, 0.5)',
+                            borderColor: '#047857', // emerald-700
+                            backgroundColor: 'rgba(4, 120, 87, 0.5)',
                             tension: 0.1,
                             pointRadius: 5,
                             pointHoverRadius: 8
@@ -591,21 +602,24 @@
             });
 
             const handleDownloadPdf = () => {
+                // CORREÇÃO: Instancia o jsPDF usando a forma recomendada pela documentação.
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
                 doc.setFontSize(18);
-                doc.text("Histórico de Pressão Arterial", 14, 22);
+                doc.text("Relatório de Pressão Arterial", 14, 22);
                 
                 doc.setFontSize(11);
                 let yPos = 32;
-                doc.text(`Paciente: ${patientProfile.name}`, 14, yPos); yPos += 6;
-                doc.text(`Idade: ${getAge(patientProfile.dob)} anos`, 14, yPos); yPos += 6;
-                doc.text(`Peso: ${patientProfile.weightKg} kg`, 14, yPos); yPos += 6;
-                doc.text(`Altura: ${patientProfile.heightM} m`, 14, yPos); yPos += 8;
+                doc.text(`Paciente: ${patientProfile.name || 'Não informado'}`, 14, yPos); 
+                yPos += 7;
+                const age = getAge(patientProfile.dob);
+                doc.text(`Idade: ${age ? age + ' anos' : 'Não informada'}`, 14, yPos); 
+                yPos += 9;
 
                 doc.setFontSize(12);
-                doc.text("Medicações em Uso:", 14, yPos); yPos += 7;
+                doc.text("Medicações em Uso:", 14, yPos); 
+                yPos += 7;
                 doc.setFontSize(10);
                 if (patientProfile.medications && patientProfile.medications.length > 0) {
                     patientProfile.medications.forEach(med => {
@@ -630,14 +644,32 @@
                     ];
                     tableRows.push(readingData);
                 });
-
+                
                 doc.autoTable({
                     head: [tableColumn],
                     body: tableRows,
                     startY: yPos + 2,
                 });
                 
-                doc.save(`historico_pressao_${patientProfile.name.replace(/ /g, "_")}.pdf`);
+                // --- ASSINATURA NO PDF ---
+                const pageHeight = doc.internal.pageSize.getHeight();
+                doc.setFontSize(8);
+                doc.setTextColor(150); // Cor cinza discreta
+                const signatureText = "Controle de Pressão Arterial desenvolvido por: ";
+                const signatureName = "J. Vitor Martins";
+                const textWidth = doc.getStringUnitWidth(signatureText + signatureName) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2; // Centralizado
+
+                doc.setFont('helvetica', 'normal');
+                doc.text(signatureText, textX, pageHeight - 10);
+                
+                const nameX = textX + doc.getStringUnitWidth(signatureText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                doc.setFont('helvetica', 'italic');
+                doc.text(signatureName, nameX, pageHeight - 10);
+                // --- FIM DA ASSINATURA ---
+
+                const fileName = `relatorio_pressao_${(patientProfile.name || 'paciente').replace(/ /g, "_")}.pdf`;
+                doc.save(fileName);
             };
 
             downloadPdfBtn.addEventListener('click', handleDownloadPdf);
@@ -676,4 +708,6 @@
     </script>
 </body>
 </html>
+
+
 

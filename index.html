@@ -6,7 +6,6 @@
     <title>Controle de Pressão Arterial - Maria José Martins</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- CORREÇÃO: Trocado os scripts do cdnjs pelos da unpkg, recomendados na documentação oficial -->
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -250,10 +249,7 @@
                 { id: 1, date: '2025-09-21', time: '09:30', sys: 190, dia: 100 }
             ];
             
-            // ATENÇÃO: É uma má prática de segurança expor chaves de API no lado do cliente (frontend).
-            // Em um projeto real, essa chamada deveria ser feita por um backend seguro para proteger sua chave.
-            // Substitua a chave abaixo pela sua chave de API do Google AI Studio.
-            const GEMINI_API_KEY = "SUA_CHAVE_API_AQUI"; 
+            const GEMINI_API_KEY = "AIzaSyAv9EmSKxAZmyzsHOwmMXv0F-0SUaFfBUg"; 
             const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
             
             const savePatientProfile = () => {
@@ -328,7 +324,6 @@
                         if (!response.ok) {
                            const errorBody = await response.json();
                            console.error('Erro na API Gemini:', errorBody);
-                           // Se for erro de API Key inválida, avisa o usuário.
                            if (errorBody.error && errorBody.error.message.includes("API key not valid")) {
                                return "Erro: A chave de API não é válida. Verifique a chave no código e tente novamente.";
                            }
@@ -602,7 +597,6 @@
             });
 
             const handleDownloadPdf = () => {
-                // CORREÇÃO: Instancia o jsPDF usando a forma recomendada pela documentação.
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
@@ -708,6 +702,4 @@
     </script>
 </body>
 </html>
-
-
 

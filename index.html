@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Pressão Arterial - Maria José Martins</title>
+    <title>Controlo de Pressão Arterial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -12,213 +12,199 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px;
-            max-height: 40vh;
-        }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 400px;
-            }
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #14b8a6;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .modal {
-            transition: opacity 0.25s ease;
-        }
-        .pressure-badge {
-            display: inline-block;
-            padding: 0.25rem 0.6rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            border-radius: 9999px;
-            white-space: nowrap;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 300px; max-height: 40vh; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #14b8a6; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .modal { transition: opacity 0.25s ease; }
+        #app-content.hidden { display: none; }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-800">
 
-    <div id="app-loader" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
-        <div class="loader"></div>
-        <p class="mt-4 text-stone-600">Carregando dados...</p>
-    </div>
-
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-teal-800">Controle de Pressão Arterial</h1>
-            <div class="flex justify-center items-center gap-4 mt-2">
-                <p class="text-lg text-stone-600" id="patient-name-header"></p>
-                <button id="open-modal-btn" class="bg-white border border-teal-600 text-teal-600 font-bold py-1 px-3 rounded-lg hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition text-sm">Editar Dados do Paciente</button>
-            </div>
-        </header>
-
-        <main class="space-y-8">
-            <section id="add-reading" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
-                <h2 class="text-2xl font-semibold mb-4 text-teal-700">Adicionar Nova Medição</h2>
-                <form id="pressure-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div>
-                        <label for="date" class="block text-sm font-medium text-stone-600 mb-1">Data</label>
-                        <input type="date" id="date" name="date" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
-                    </div>
-                    <div>
-                        <label for="time" class="block text-sm font-medium text-stone-600 mb-1">Hora</label>
-                        <input type="time" id="time" name="time" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                           <label for="systolic" class="block text-sm font-medium text-stone-600 mb-1">Sistólica (SYS)</label>
-                           <input type="number" id="systolic" name="systolic" placeholder="ex: 120" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
-                        </div>
-                        <div>
-                           <label for="diastolic" class="block text-sm font-medium text-stone-600 mb-1">Diastólica (DIA)</label>
-                           <input type="number" id="diastolic" name="diastolic" placeholder="ex: 80" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
-                        </div>
-                    </div>
-                    <button id="save-reading-btn" type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all transform hover:scale-105 shadow-md">
-                        Salvar Medição
-                    </button>
-                </form>
-                 <p id="form-error" class="text-red-500 text-sm mt-2 hidden"></p>
-            </section>
-            
-            <section id="visualization" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
-                <h2 class="text-2xl font-semibold mb-4 text-center text-teal-700">Tendência da Pressão Arterial</h2>
-                <div class="chart-container">
-                    <canvas id="pressureChart"></canvas>
-                </div>
-            </section>
-            
-            <section id="history" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                    <h2 class="text-2xl font-semibold text-teal-700">Histórico de Medições</h2>
-                     <button id="download-pdf-btn" class="mt-4 sm:mt-0 bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition shadow-md">
-                         Baixar Histórico (PDF)
-                     </button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b-2 border-stone-200">
-                                <th class="p-3 text-sm font-semibold tracking-wider">Data</th>
-                                <th class="p-3 text-sm font-semibold tracking-wider">Hora</th>
-                                <th class="p-3 text-sm font-semibold tracking-wider">Pressão (SYS/DIA)</th>
-                                <th class="p-3 text-sm font-semibold tracking-wider">Classificação</th>
-                                <th class="p-3 text-sm font-semibold tracking-wider text-center">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-table-body">
-                        </tbody>
-                    </table>
-                     <p id="no-data-message" class="text-center text-stone-500 py-8 hidden">Nenhuma medição registrada ainda.</p>
-                </div>
-            </section>
-            
-            <section id="gemini-features" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
-                <h2 class="text-2xl font-semibold mb-4 text-teal-700">Análise Inteligente</h2>
-                <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                     <button id="analyze-btn" class="flex-1 bg-sky-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-transform transform hover:scale-105 shadow-md">
-                         ✨ Gerar Análise dos Dados
-                     </button>
-                     <button id="tip-btn" class="flex-1 bg-amber-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-transform transform hover:scale-105 shadow-md">
-                         ✨ Gerar Dica de Saúde
-                     </button>
-                </div>
-                <div id="gemini-output" class="mt-4 p-4 bg-stone-100 rounded-lg min-h-[100px] border border-stone-200 text-stone-700 whitespace-pre-wrap">
-                    <div id="loading-spinner" class="hidden mx-auto loader"></div>
-                    <p id="analysis-result"></p>
-                </div>
-            </section>
-        </main>
-        
-        <footer class="text-center mt-8 py-4">
-            <p class="text-sm text-stone-500">
-                <span id="user-info" class="font-mono text-xs"></span>
-            </p>
-            <p class="text-xs text-stone-400 mt-2">Controle de Pressão Arterial desenvolvido por: <i class="font-medium">J. Vitor Martins</i></p>
-        </footer>
-    </div>
-    
-    <!-- Patient Data Modal -->
-    <div id="patient-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-40">
-        <div id="modal-content" class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 transform transition-transform scale-95 max-h-[90vh] overflow-y-auto">
-            <h2 class="text-2xl font-bold mb-6 text-teal-800">Dados do Paciente</h2>
-            
-            <form id="patient-form" class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="patient-name" class="block text-sm font-medium text-stone-600">Nome Completo</label>
-                        <input type="text" id="patient-name" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    </div>
-                     <div>
-                        <label for="patient-dob" class="block text-sm font-medium text-stone-600">Data de Nascimento</label>
-                        <input type="date" id="patient-dob" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    </div>
-                    <div>
-                        <label for="patient-weight" class="block text-sm font-medium text-stone-600">Peso (kg)</label>
-                        <input type="number" step="0.1" id="patient-weight" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    </div>
-                    <div>
-                        <label for="patient-height" class="block text-sm font-medium text-stone-600">Altura (m)</label>
-                        <input type="number" step="0.01" id="patient-height" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    </div>
-                </div>
-                 <div>
-                    <label class="block text-sm font-medium text-stone-600 mb-2">Outras Condições de Saúde (opcional)</label>
-                    <textarea id="patient-conditions" rows="3" placeholder="Ex: Diabetes tipo 2, Colesterol alto" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
-                </div>
+    <!-- ECRÃ DE LOGIN -->
+    <div id="login-screen" class="fixed inset-0 bg-teal-800 flex items-center justify-center p-4 z-50">
+        <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-2xl text-center">
+            <h2 class="text-2xl font-bold text-teal-800 mb-2">Acesso Seguro</h2>
+            <p class="text-stone-600 mb-6">Digite a senha para aceder aos registos.</p>
+            <form id="login-form">
+                <input type="password" id="password-input" class="w-full px-4 py-3 border border-stone-300 rounded-lg shadow-sm text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="••••••">
+                <p id="login-error" class="text-red-500 text-sm mt-2 h-5"></p>
+                <button type="submit" class="w-full mt-4 bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-transform transform hover:scale-105 shadow-md">
+                    Entrar
+                </button>
             </form>
-            
-            <hr class="my-6 border-stone-200">
-            
-            <h3 class="text-xl font-semibold mb-4 text-teal-700">Medicações em Uso</h3>
-            <div id="modal-medications-list" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
-            <form id="medication-form" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                <div class="sm:col-span-1">
-                    <label for="medication-name" class="block text-sm font-medium text-stone-600 mb-1">Nome da Medicação</label>
-                    <input type="text" id="medication-name" placeholder="Ex: Losartana" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                </div>
-                <div class="sm:col-span-1">
-                    <label for="medication-frequency" class="block text-sm font-medium text-stone-600 mb-1">Frequência</label>
-                    <input type="text" id="medication-frequency" placeholder="Ex: 1 vez ao dia" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                </div>
-                <div class="sm:col-span-1">
-                     <button type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-transform transform hover:scale-105 shadow-md">Adicionar</button>
-                </div>
-            </form>
-
-            <div class="flex justify-end gap-4 mt-8">
-                <button id="close-modal-btn" class="bg-stone-200 text-stone-800 font-bold py-2 px-6 rounded-lg hover:bg-stone-300 transition">Fechar</button>
-                <button id="save-profile-btn" class="bg-teal-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-teal-700 transition shadow-md">Salvar Alterações</button>
-            </div>
         </div>
     </div>
+    
+    <!-- CONTEÚDO PRINCIPAL DA APLICAÇÃO (INICIALMENTE OCULTO) -->
+    <div id="app-content" class="hidden">
+        <div id="app-loader" class="fixed inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-40 backdrop-blur-sm">
+            <div class="loader"></div>
+            <p class="mt-4 text-teal-700 font-semibold">A carregar dados...</p>
+        </div>
 
-    <!-- Modal de Confirmação para Exclusão -->
-    <div id="confirmation-modal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden opacity-0 z-50">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 sm:p-8 text-center transform transition-transform scale-95">
-            <h3 id="confirmation-title" class="text-xl font-bold mb-4 text-stone-800">Confirmar Exclusão</h3>
-            <p id="confirmation-message" class="text-stone-600 mb-6">Tem certeza que deseja excluir esta medição? Esta ação não pode ser desfeita.</p>
-            <div class="flex justify-center gap-4">
-                <button id="cancel-delete-btn" class="bg-stone-200 text-stone-800 font-bold py-2 px-6 rounded-lg hover:bg-stone-300 transition">Cancelar</button>
-                <button id="confirm-delete-btn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition shadow-md">Excluir</button>
+        <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <header class="text-center mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold text-teal-800">Controlo de Pressão Arterial</h1>
+                <div class="flex justify-center items-center gap-4 mt-2">
+                    <p class="text-lg text-stone-600" id="patient-name-header"></p>
+                    <button id="open-modal-btn" class="bg-white border border-teal-600 text-teal-600 font-bold py-1 px-3 rounded-lg hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition text-sm">Editar Dados do Paciente</button>
+                </div>
+            </header>
+
+            <main class="space-y-8">
+                <!-- Secção Adicionar Medição -->
+                <section id="add-reading" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
+                    <h2 class="text-2xl font-semibold mb-4 text-teal-700">Adicionar Nova Medição</h2>
+                    <form id="pressure-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label for="date" class="block text-sm font-medium text-stone-600 mb-1">Data</label>
+                            <input type="date" id="date" name="date" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                        </div>
+                        <div>
+                            <label for="time" class="block text-sm font-medium text-stone-600 mb-1">Hora</label>
+                            <input type="time" id="time" name="time" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                               <label for="systolic" class="block text-sm font-medium text-stone-600 mb-1">Sistólica (SYS)</label>
+                               <input type="number" id="systolic" name="systolic" placeholder="ex: 120" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                            </div>
+                            <div>
+                               <label for="diastolic" class="block text-sm font-medium text-stone-600 mb-1">Diastólica (DIA)</label>
+                               <input type="number" id="diastolic" name="diastolic" placeholder="ex: 80" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                            </div>
+                        </div>
+                        <button id="save-reading-btn" type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-transform transform hover:scale-105 shadow-md">
+                            Guardar Medição
+                        </button>
+                    </form>
+                     <p id="form-error" class="text-red-500 text-sm mt-2 hidden"></p>
+                </section>
+                
+                <!-- Secção Gráfico -->
+                <section id="visualization" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
+                    <h2 class="text-2xl font-semibold mb-4 text-center text-teal-700">Tendência da Pressão Arterial</h2>
+                    <div class="chart-container">
+                        <canvas id="pressureChart"></canvas>
+                    </div>
+                </section>
+                
+                <!-- Secção Histórico -->
+                <section id="history" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-teal-700">Histórico de Medições</h2>
+                           <button id="download-pdf-btn" class="mt-4 sm:mt-0 bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition shadow-md">
+                                 Transferir Histórico (PDF)
+                           </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b-2 border-stone-200">
+                                    <th class="p-3 text-sm font-semibold tracking-wider">Data</th>
+                                    <th class="p-3 text-sm font-semibold tracking-wider">Hora</th>
+                                    <th class="p-3 text-sm font-semibold tracking-wider">Pressão (SIS/DIA)</th>
+                                    <th class="p-3 text-sm font-semibold tracking-wider">Classificação</th>
+                                    <th class="p-3 text-sm font-semibold tracking-wider text-center">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                            </tbody>
+                        </table>
+                         <p id="no-data-message" class="text-center text-stone-500 py-8 hidden">Nenhuma medição registada ainda.</p>
+                    </div>
+                </section>
+                
+                <!-- Secção IA -->
+                <section id="gemini-features" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
+                    <h2 class="text-2xl font-semibold mb-4 text-teal-700">Análise Inteligente</h2>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                           <button id="analyze-btn" class="flex-1 bg-sky-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-transform transform hover:scale-105 shadow-md">
+                                 ✨ Gerar Análise dos Dados
+                           </button>
+                           <button id="tip-btn" class="flex-1 bg-amber-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-transform transform hover:scale-105 shadow-md">
+                                 ✨ Gerar Dica de Saúde
+                           </button>
+                    </div>
+                    <div id="gemini-output" class="mt-4 p-4 bg-stone-100 rounded-lg min-h-[100px] border border-stone-200 text-stone-700 whitespace-pre-wrap">
+                        <div id="loading-spinner" class="hidden mx-auto loader"></div>
+                        <p id="analysis-result"></p>
+                    </div>
+                </section>
+            </main>
+            
+            <footer class="text-center mt-8 py-4">
+                <p id="user-info" class="text-xs text-stone-400 mt-2"></p>
+            </footer>
+        </div>
+        
+        <!-- Modal de Dados do Paciente -->
+        <div id="patient-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-20">
+            <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 transform transition-transform scale-95 max-h-[90vh] overflow-y-auto">
+                <h2 class="text-2xl font-bold mb-6 text-teal-800">Dados do Paciente</h2>
+                
+                <form id="patient-form" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="patient-name" class="block text-sm font-medium text-stone-600">Nome Completo</label>
+                            <input type="text" id="patient-name" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                         <div>
+                            <label for="patient-dob" class="block text-sm font-medium text-stone-600">Data de Nascimento</label>
+                            <input type="date" id="patient-dob" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label for="patient-weight" class="block text-sm font-medium text-stone-600">Peso (kg)</label>
+                            <input type="number" step="0.1" id="patient-weight" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label for="patient-height" class="block text-sm font-medium text-stone-600">Altura (m)</label>
+                            <input type="number" step="0.01" id="patient-height" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-stone-600 mb-2">Outras Condições de Saúde (opcional)</label>
+                        <textarea id="patient-conditions" rows="3" placeholder="Ex: Diabetes tipo 2, Colesterol alto" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                    </div>
+                </form>
+                
+                <hr class="my-6 border-stone-200">
+                
+                <h3 class="text-xl font-semibold mb-4 text-teal-700">Medicações em Uso</h3>
+                <div id="modal-medications-list" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
+                <form id="medication-form" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    <div class="sm:col-span-1">
+                        <label for="medication-name" class="block text-sm font-medium text-stone-600 mb-1">Nome da Medicação</label>
+                        <input type="text" id="medication-name" placeholder="Ex: Losartana" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div class="sm:col-span-1">
+                        <label for="medication-frequency" class="block text-sm font-medium text-stone-600 mb-1">Frequência</label>
+                        <input type="text" id="medication-frequency" placeholder="Ex: 1 vez ao dia" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div class="sm:col-span-1">
+                           <button type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-transform transform hover:scale-105 shadow-md">Adicionar</button>
+                    </div>
+                </form>
+
+                <div class="flex justify-end gap-4 mt-8">
+                    <button id="close-modal-btn" class="bg-stone-200 text-stone-800 font-bold py-2 px-6 rounded-lg hover:bg-stone-300 transition">Fechar</button>
+                    <button id="save-profile-btn" class="bg-teal-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-teal-700 transition shadow-md">Guardar Alterações</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação para Exclusão -->
+        <div id="confirmation-modal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden opacity-0 z-50">
+            <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 sm:p-8 text-center transform transition-transform scale-95">
+                <h3 id="confirmation-title" class="text-xl font-bold mb-4 text-stone-800">Confirmar Exclusão</h3>
+                <p id="confirmation-message" class="text-stone-600 mb-6">Tem a certeza que deseja excluir esta medição? Esta ação não pode ser desfeita.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancel-delete-btn" class="bg-stone-200 text-stone-800 font-bold py-2 px-6 rounded-lg hover:bg-stone-300 transition">Cancelar</button>
+                    <button id="confirm-delete-btn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition shadow-md">Excluir</button>
+                </div>
             </div>
         </div>
     </div>
@@ -228,12 +214,33 @@
     <script type="module">
         // Importações do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, collection, addDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
         document.addEventListener('DOMContentLoaded', () => {
-            // --- VARIÁVEIS GLOBAIS E ELEMENTOS DO DOM ---
+
+            // --- PASSO 1: CONFIGURAÇÃO DO FIREBASE ---
+            const firebaseConfig = {
+              apiKey: "AIzaSyBLwU5-wAPNI2m3PkrFFu4qDFksYa1DRF4",
+              authDomain: "pressao-arterial-jvitor.firebaseapp.com",
+              projectId: "pressao-arterial-jvitor",
+              storageBucket: "pressao-arterial-jvitor.appspot.com",
+              messagingSenderId: "262625952329",
+              appId: "1:262625952329:web:4eb36c92eb8d8c4d7b3598"
+            };
+
+            // --- PASSO 2: DEFINA O EMAIL E A SENHA ÚNICOS PARA O PROJETO ---
+            // O email foi alterado uma última vez para garantir uma criação de conta 100% limpa.
+            const APP_EMAIL = "app.master.user@pressaoarterial.com";
+            const APP_PASSWORD = "Apto30211@";
+
+            // --- Seletores de UI ---
             const ui = {
+                loginScreen: document.getElementById('login-screen'),
+                loginForm: document.getElementById('login-form'),
+                passwordInput: document.getElementById('password-input'),
+                loginError: document.getElementById('login-error'),
+                appContent: document.getElementById('app-content'),
                 appLoader: document.getElementById('app-loader'),
                 pressureForm: document.getElementById('pressure-form'),
                 dateInput: document.getElementById('date'),
@@ -251,7 +258,6 @@
                 downloadPdfBtn: document.getElementById('download-pdf-btn'),
                 patientNameHeader: document.getElementById('patient-name-header'),
                 patientModal: document.getElementById('patient-modal'),
-                modalContent: document.getElementById('modal-content'),
                 openModalBtn: document.getElementById('open-modal-btn'),
                 closeModalBtn: document.getElementById('close-modal-btn'),
                 saveProfileBtn: document.getElementById('save-profile-btn'),
@@ -266,7 +272,6 @@
                 medicationFrequencyInput: document.getElementById('medication-frequency'),
                 saveReadingBtn: document.getElementById('save-reading-btn'),
                 userInfo: document.getElementById('user-info'),
-                // Adicionados para o modal de confirmação
                 confirmationModal: document.getElementById('confirmation-modal'),
                 confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
                 cancelDeleteBtn: document.getElementById('cancel-delete-btn'),
@@ -275,123 +280,90 @@
             let pressureChart;
             let patientProfile = {}; 
             let readings = [];
-            let db, auth, userId, appId; // `appId` agora é global para evitar erros
-            let readingToDeleteId = null; // Armazena o ID do item a ser excluído
+            let db, auth, userId;
+            let readingToDeleteId = null; 
             
-            // --- CONFIGURAÇÃO DA API GEMINI (SEGURA) ---
-            const GEMINI_API_KEY = "";
-            const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-
-            const enterOfflineMode = (errorMessage = "Configuração do Firebase ausente.") => {
-                ui.appLoader.innerHTML = `
-                    <div class="text-center p-4">
-                        <h2 class="text-xl font-bold text-amber-700 mb-2">Modo de Visualização Offline</h2>
-                        <p class="text-stone-600">${errorMessage}</p>
-                        <p class="text-stone-500 text-sm mt-2">
-                            Isto é esperado ao rodar o arquivo localmente. <br>
-                            As funcionalidades de salvar e carregar dados estão desativadas.
-                        </p>
-                    </div>
-                `;
-                document.querySelectorAll('input, button, textarea').forEach(el => {
-                    el.disabled = true;
-                });
-                // Carrega dados de exemplo para visualização
-                patientProfile = { name: "Paciente (Offline)" };
-                readings = [
-                    { sys: 125, dia: 82, datetime: { seconds: Math.floor(Date.now() / 1000) - 172800 } },
-                    { sys: 135, dia: 88, datetime: { seconds: Math.floor(Date.now() / 1000) - 86400 } },
-                    { sys: 130, dia: 85, datetime: { seconds: Math.floor(Date.now() / 1000) } },
-                ];
-                renderAll();
-            };
-
-            // --- CONFIGURAÇÃO DO FIREBASE ---
-            const setupFirebase = async () => {
+            const GEMINI_API_KEY = ""; 
+            const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+            
+            // --- LÓGICA DE LOGIN E AUTENTICAÇÃO ---
+            const initializeFirebase = () => {
                 try {
-                    // *******************************************************************
-                    // ** PASSO 1: COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI DENTRO {} **
-                    // Vá no seu console do Firebase -> Configurações do Projeto -> Geral
-                    // e copie o objeto de configuração (firebaseConfig).
-                    // *******************************************************************
-                    const manualFirebaseConfig = {
-                        apiKey: "AIzaSyBLwU5-wAPNI2m3PkrFFu4qDFksYa1DRF4",
-                        authDomain: "pressao-arterial-jvitor.firebaseapp.com",
-                        projectId: "pressao-arterial-jvitor",
-                        storageBucket: "pressao-arterial-jvitor.firebasestorage.app",
-                        messagingSenderId: "262625952329",
-                        appId: "1:262625952329:web:4eb36c92eb8d8c4d7b3598"
-                    };
-
-                    const firebaseConfig = Object.keys(manualFirebaseConfig).length > 1
-                        ? manualFirebaseConfig
-                        : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
-
-                    if (!firebaseConfig || !firebaseConfig.apiKey) {
-                        console.warn("AVISO: Configuração do Firebase não encontrada no código. A aplicação está rodando em modo de visualização offline.");
-                        enterOfflineMode();
-                        return;
-                    }
-                    
-                    appId = firebaseConfig.appId; // Armazena o appId na variável global
-                    if (!appId) {
-                        enterOfflineMode("appId não encontrado na configuração do Firebase.");
-                        return;
-                    }
-
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
-
-                    onAuthStateChanged(auth, user => {
-                        if (user) {
-                            // O usuário já está logado, seja de uma sessão anterior ou do login anônimo.
-                            userId = user.uid;
-                            ui.userInfo.textContent = `ID do Usuário: ${userId}`;
-                            setupListeners();
-                        } else {
-                            // Se não houver usuário, simplesmente faz o login anônimo.
-                            // Isso remove a complexidade do token customizado que não se aplica ao seu caso de uso.
-                            signInAnonymously(auth).catch(error => {
-                                console.error("Erro no login anônimo:", error);
-                                enterOfflineMode("Não foi possível realizar o login anônimo.");
-                            });
-                        }
-                    });
+                    
+                    ui.loginForm.addEventListener('submit', handleLogin);
 
                 } catch (error) {
-                    console.error("Erro ao inicializar o Firebase:", error);
-                    enterOfflineMode("Não foi possível conectar ao banco de dados.");
+                    console.error("Erro fatal ao inicializar Firebase:", error);
+                    ui.loginError.textContent = "Erro de configuração. Verifique a consola.";
                 }
             };
 
-            // --- LISTENERS DE DADOS (EM TEMPO REAL) ---
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                const enteredPassword = ui.passwordInput.value;
+                ui.loginError.textContent = '';
+
+                // 1. Valida a senha no lado do cliente primeiro. Esta é a verificação principal.
+                if (enteredPassword !== APP_PASSWORD) {
+                    ui.loginError.textContent = 'Senha incorreta.';
+                    return;
+                }
+
+                // 2. Se a senha estiver correta, tenta fazer login ou criar a conta.
+                try {
+                    // Tenta fazer login, pois será a ação mais comum após o primeiro acesso.
+                    const userCredential = await signInWithEmailAndPassword(auth, APP_EMAIL, APP_PASSWORD);
+                    userId = userCredential.user.uid;
+                    initializeAppLogic();
+                } catch (error) {
+                    // Se o utilizador não existir, cria-o na primeira vez.
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                        try {
+                            const newUserCredential = await createUserWithEmailAndPassword(auth, APP_EMAIL, APP_PASSWORD);
+                            userId = newUserCredential.user.uid;
+                            initializeAppLogic();
+                        } catch (creationError) {
+                            ui.loginError.textContent = 'Erro ao configurar a conta. Tente novamente.';
+                            console.error("Erro de criação:", creationError);
+                        }
+                    } else {
+                        // Para qualquer outro erro inesperado
+                        ui.loginError.textContent = 'Ocorreu um erro. Verifique a consola.';
+                        console.error("Erro de login inesperado:", error);
+                    }
+                }
+            };
+            
+            const initializeAppLogic = () => {
+                ui.loginScreen.style.display = 'none';
+                ui.appContent.classList.remove('hidden');
+                setupListeners();
+                setDefaultDateTime();
+            };
+
+            // --- LÓGICA PRINCIPAL DA APLICAÇÃO ---
+
             const setupListeners = () => {
-                if (!userId || !appId) return; // Garante que o appId esteja disponível
+                if (!userId) return;
                 
-                // O appId global é usado para construir o caminho do documento
-                const profileDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
+                const profileDocRef = doc(db, "userData", userId, "profile", "data");
                 onSnapshot(profileDocRef, (docSnap) => {
                     if (docSnap.exists()) {
                         patientProfile = docSnap.data();
                     } else {
-                        patientProfile = {
-                            name: "Maria José Martins",
-                            dob: "1967-01-14",
-                            weightKg: 68,
-                            heightM: 1.70,
-                            conditions: "Hipertensão",
-                            medications: [ { id: 1, name: 'Losartana Potássica', frequency: '1 vez ao dia' } ]
-                        };
-                        setDoc(profileDocRef, patientProfile);
+                        // Cria um perfil padrão se não existir
+                        const defaultProfile = { name: "Maria José Martins", dob: "1967-01-14", weightKg: 68, heightM: 1.70, conditions: "Hipertensão", medications: [{ id: Date.now(), name: 'Losartana Potássica', frequency: '1 vez ao dia' }] };
+                        setDoc(profileDocRef, defaultProfile);
+                        patientProfile = defaultProfile;
                     }
                     renderAll();
                     ui.appLoader.style.display = 'none';
                 });
 
-                // NOTA: A consulta 'orderBy' pode exigir a criação de um índice no Firebase.
-                // Se necessário, o Firebase fornecerá um link de erro no console para criá-lo com um clique.
-                const readingsColRef = collection(db, "artifacts", appId, "users", userId, "readings");
+                const readingsColRef = collection(db, "userData", userId, "readings");
                 const q = query(readingsColRef, orderBy("datetime", "desc"));
                 onSnapshot(q, (querySnapshot) => {
                     readings = [];
@@ -399,212 +371,15 @@
                         readings.push({ id: doc.id, ...doc.data() });
                     });
                     renderAll();
+                }, (error) => {
+                    console.error("Erro ao procurar medições: ", error);
+                    if (error.code === 'failed-precondition') {
+                         alert("É necessário criar um índice no Firebase para ordenar os dados. Por favor, verifique a consola de registos para o link de criação.");
+                    }
                 });
             };
 
-            // --- LÓGICA DE RENDERIZAÇÃO ---
-            const renderAll = () => {
-                renderHeader();
-                renderTable();
-                renderChart();
-            };
-
-            const renderHeader = () => {
-                ui.patientNameHeader.textContent = patientProfile.name || "Paciente";
-            };
-
-            const renderTable = () => {
-                ui.tableBody.innerHTML = '';
-                if (readings.length === 0) {
-                    ui.noDataMessage.classList.remove('hidden');
-                    return;
-                }
-                ui.noDataMessage.classList.add('hidden');
-                
-                const sortedReadings = [...readings].sort((a,b) => (b.datetime.seconds || 0) - (a.datetime.seconds || 0));
-
-                sortedReadings.forEach(reading => {
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-stone-200 hover:bg-stone-50';
-                    const classification = classifyPressure(reading.sys, reading.dia);
-                    const date = new Date((reading.datetime.seconds || 0) * 1000);
-                    const formattedDate = date.toLocaleDateString('pt-BR');
-                    const formattedTime = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-                    row.innerHTML = `
-                        <td class="p-3">${formattedDate}</td>
-                        <td class="p-3">${formattedTime}</td>
-                        <td class="p-3 font-medium">${reading.sys} / ${reading.dia}</td>
-                        <td class="p-3">
-                            <span class="pressure-badge ${classification.colorClass} ${classification.textColorClass}">${classification.label}</span>
-                        </td>
-                        <td class="p-3 text-center">
-                            <button data-id="${reading.id}" class="delete-btn text-red-500 hover:text-red-700 font-semibold text-sm">Excluir</button>
-                        </td>
-                    `;
-                    ui.tableBody.appendChild(row);
-                });
-            };
-
-            const renderChart = () => {
-                const sortedReadings = [...readings].sort((a, b) => (a.datetime.seconds || 0) - (b.datetime.seconds || 0));
-
-                const labels = sortedReadings.map(r => {
-                    const d = new Date((r.datetime.seconds || 0) * 1000);
-                    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-                });
-                const sysData = sortedReadings.map(r => r.sys);
-                const diaData = sortedReadings.map(r => r.dia);
-
-                const data = {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Sistólica (SYS)', data: sysData, borderColor: '#b91c1c', backgroundColor: 'rgba(185, 28, 28, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 },
-                        { label: 'Diastólica (DIA)', data: diaData, borderColor: '#047857', backgroundColor: 'rgba(4, 120, 87, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 }
-                    ]
-                };
-
-                if (pressureChart) {
-                    pressureChart.data = data;
-                    pressureChart.update();
-                } else {
-                    pressureChart = new Chart(ui.chartCanvas, {
-                        type: 'line', data: data,
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            scales: { y: { beginAtZero: false, title: { display: true, text: 'mmHg' } } },
-                            plugins: {
-                                legend: { position: 'top' },
-                                tooltip: { callbacks: { label: (c) => `${c.dataset.label || ''}: ${c.parsed.y} mmHg` } }
-                            }
-                        }
-                    });
-                }
-            };
-
-            const populatePatientForm = () => {
-                ui.patientNameInput.value = patientProfile.name || '';
-                ui.patientDobInput.value = patientProfile.dob || '';
-                ui.patientWeightInput.value = patientProfile.weightKg || '';
-                ui.patientHeightInput.value = patientProfile.heightM || '';
-                ui.patientConditionsInput.value = patientProfile.conditions || '';
-                renderMedicationsList();
-            };
-
-            const renderMedicationsList = () => {
-                ui.modalMedicationsListDiv.innerHTML = '';
-                if (!patientProfile.medications || patientProfile.medications.length === 0) {
-                    ui.modalMedicationsListDiv.innerHTML = '<p class="text-stone-500 text-sm">Nenhuma medicação adicionada.</p>';
-                } else {
-                    patientProfile.medications.forEach(med => {
-                        const medEl = document.createElement('div');
-                        medEl.className = 'flex justify-between items-center bg-stone-100 p-2 rounded-lg';
-                        medEl.innerHTML = `
-                            <span class="text-sm"><span class="font-semibold">${med.name}</span> - ${med.frequency}</span>
-                            <button data-id="${med.id}" class="delete-med-btn text-red-500 hover:text-red-700 text-xs font-bold">EXCLUIR</button>
-                        `;
-                        ui.modalMedicationsListDiv.appendChild(medEl);
-                    });
-                }
-            };
-            
-            // --- FUNÇÕES DE LÓGICA E UTILITÁRIOS ---
-
-            const classifyPressure = (sys, dia) => {
-                if (sys < 120 && dia < 80) return { label: 'Ótima', colorClass: 'bg-green-100', textColorClass: 'text-green-800' };
-                if (sys < 130 && dia < 85) return { label: 'Normal', colorClass: 'bg-blue-100', textColorClass: 'text-blue-800' };
-                if (sys < 140 || dia < 90) return { label: 'Limítrofe', colorClass: 'bg-yellow-100', textColorClass: 'text-yellow-800' };
-                if (sys < 160 || dia < 100) return { label: 'Hipertensão Leve', colorClass: 'bg-orange-100', textColorClass: 'text-orange-800' };
-                if (sys < 180 || dia < 110) return { label: 'Hipertensão Moderada', colorClass: 'bg-red-100', textColorClass: 'text-red-800' };
-                return { label: 'Hipertensão Grave', colorClass: 'bg-red-200', textColorClass: 'text-red-900' };
-            };
-            
-            const getAge = (dobString) => {
-                if (!dobString) return '';
-                const birthDate = new Date(dobString);
-                const today = new Date();
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                    age--;
-                }
-                return age;
-            };
-
-            const setDefaultDateTime = () => {
-                const now = new Date();
-                ui.dateInput.value = now.toISOString().split('T')[0];
-                ui.timeInput.value = now.toTimeString().slice(0, 5);
-            };
-
-            const toggleModal = (show) => {
-                if (show) {
-                    populatePatientForm();
-                    ui.patientModal.classList.remove('hidden');
-                    setTimeout(() => {
-                        ui.patientModal.classList.remove('opacity-0');
-                        ui.modalContent.classList.remove('scale-95');
-                    }, 10);
-                } else {
-                    ui.patientModal.classList.add('opacity-0');
-                    ui.modalContent.classList.add('scale-95');
-                    setTimeout(() => ui.patientModal.classList.add('hidden'), 250);
-                }
-            };
-
-            // --- LÓGICA DA API GEMINI ---
-            const callGeminiAPI = async (payload) => {
-                 try {
-                    const response = await fetch(GEMINI_API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const result = await response.json();
-                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível gerar a resposta.";
-                } catch (error) {
-                    console.error("Erro na API Gemini:", error);
-                    return "Desculpe, ocorreu um erro ao contatar a análise inteligente.";
-                }
-            };
-            
-            const handleAnalysis = async () => {
-                if (readings.length === 0) {
-                    ui.analysisResult.textContent = "Adicione medições para gerar uma análise.";
-                    return;
-                }
-                ui.loadingSpinner.classList.remove('hidden');
-                ui.analysisResult.textContent = '';
-                
-                const formattedReadings = readings
-                    .map(r => `${new Date(r.datetime.seconds*1000).toLocaleString('pt-BR')} - ${r.sys}/${r.dia}`)
-                    .join('\n');
-                
-                const medicationsText = patientProfile.medications?.map(m => `- ${m.name} (${m.frequency})`).join('\n') || 'Nenhuma.';
-                const patientData = `Dados: Nome: ${patientProfile.name}, Idade: ${getAge(patientProfile.dob)}, Condições: ${patientProfile.conditions || 'N/A'}, Medicações:\n${medicationsText}`;
-                
-                const systemPrompt = "Você é um assistente de saúde virtual. Analise dados de pressão arterial e forneça um resumo geral em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO. Sempre inclua um aviso claro para consultar um médico. Formate a resposta de forma amigável.";
-                const userQuery = `Analise as leituras de pressão (Sistólica/Diastólica) para a paciente e resuma as tendências.\n\n${patientData}\n\nLeituras:\n${formattedReadings}`;
-                
-                const responseText = await callGeminiAPI({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } });
-                ui.analysisResult.textContent = responseText;
-                ui.loadingSpinner.classList.add('hidden');
-            };
-            
-            const handleTipRequest = async () => {
-                ui.loadingSpinner.classList.remove('hidden');
-                ui.analysisResult.textContent = '';
-                const systemPrompt = "Você é um assistente de saúde virtual. Forneça uma dica de saúde concisa e prática para controle da pressão arterial, em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO.";
-                const userQuery = "Gere uma dica de saúde sobre controle da pressão arterial.";
-                const responseText = await callGeminiAPI({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } });
-                ui.analysisResult.textContent = responseText;
-                ui.loadingSpinner.classList.add('hidden');
-            };
-
-            // --- HANDLERS DE EVENTOS ---
             const handleSaveProfile = async () => {
-                // O appId global é usado para construir o caminho do documento
                 const updatedProfile = {
                     name: ui.patientNameInput.value.trim(),
                     dob: ui.patientDobInput.value,
@@ -613,7 +388,7 @@
                     conditions: ui.patientConditionsInput.value.trim(),
                     medications: patientProfile.medications || []
                 };
-                const profileDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
+                const profileDocRef = doc(db, "userData", userId, "profile", "data");
                 await setDoc(profileDocRef, updatedProfile, { merge: true });
                 toggleModal(false);
             };
@@ -621,53 +396,84 @@
             ui.pressureForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 ui.formError.classList.add('hidden');
+
                 const sys = parseInt(ui.systolicInput.value);
                 const dia = parseInt(ui.diastolicInput.value);
 
                 if (isNaN(sys) || isNaN(dia) || sys <= 0 || dia <= 0 || sys < dia) {
-                    ui.formError.textContent = 'Valores inválidos. A sistólica deve ser maior que a diastólica.';
+                    ui.formError.textContent = 'Valores de pressão inválidos.';
                     ui.formError.classList.remove('hidden');
                     return;
                 }
 
-                const dateTimeString = `${ui.dateInput.value}T${ui.timeInput.value}`;
-                
                 const newReading = {
-                    datetime: new Date(dateTimeString),
+                    datetime: new Date(`${ui.dateInput.value}T${ui.timeInput.value}`),
                     sys: sys,
                     dia: dia
                 };
 
-                const originalButtonText = ui.saveReadingBtn.innerHTML;
-                ui.saveReadingBtn.innerHTML = 'Salvando...';
+                ui.saveReadingBtn.textContent = 'A guardar...';
                 ui.saveReadingBtn.disabled = true;
 
                 try {
-                    // O appId global é usado para construir o caminho do documento
-                    const readingsColRef = collection(db, "artifacts", appId, "users", userId, "readings");
+                    const readingsColRef = collection(db, "userData", userId, "readings");
                     await addDoc(readingsColRef, newReading);
                     
-                    ui.saveReadingBtn.innerHTML = 'Salvo!';
+                    ui.saveReadingBtn.innerHTML = 'Guardado!';
                     ui.saveReadingBtn.classList.replace('bg-teal-600', 'bg-green-600');
                     ui.pressureForm.reset();
                     setDefaultDateTime();
 
-                } catch (error) {
-                    console.error("Erro ao salvar medição: ", error);
-                    ui.formError.textContent = 'Erro ao salvar. Tente novamente.';
-                    ui.formError.classList.remove('hidden');
-                    ui.saveReadingBtn.innerHTML = 'Erro!';
-                    ui.saveReadingBtn.classList.replace('bg-teal-600', 'bg-red-600');
-                } finally {
                     setTimeout(() => {
-                        ui.saveReadingBtn.innerHTML = originalButtonText;
-                        ui.saveReadingBtn.disabled = false;
+                        ui.saveReadingBtn.innerHTML = 'Guardar Medição';
                         ui.saveReadingBtn.classList.replace('bg-green-600', 'bg-teal-600');
-                        ui.saveReadingBtn.classList.replace('bg-red-600', 'bg-teal-600');
+                        ui.saveReadingBtn.disabled = false;
                     }, 2000);
+                } catch (error) {
+                    console.error("Erro ao guardar medição: ", error);
+                    ui.formError.textContent = 'Erro ao guardar. Tente novamente.';
+                    ui.formError.classList.remove('hidden');
+                    ui.saveReadingBtn.disabled = false;
+                    ui.saveReadingBtn.textContent = 'Guardar Medição';
                 }
             });
             
+            const getClassification = (sys, dia) => {
+                if (sys < 120 && dia < 80) return { text: 'Ótima', color: 'bg-green-500' };
+                if (sys < 130 && dia < 85) return { text: 'Normal', color: 'bg-blue-500' };
+                if (sys < 140 || dia < 90) return { text: 'Limítrofe', color: 'bg-yellow-500' };
+                if (sys < 160 || dia < 100) return { text: 'Hipertensão Leve', color: 'bg-orange-500' };
+                if (sys < 180 || dia < 110) return { text: 'Hipertensão Moderada', color: 'bg-red-500' };
+                if (sys >= 180 || dia >= 110) return { text: 'Hipertensão Grave', color: 'bg-red-700' };
+                return { text: 'Não classificado', color: 'bg-gray-400' };
+            };
+
+            const renderTable = () => {
+                ui.tableBody.innerHTML = '';
+                if (readings.length === 0) {
+                    ui.noDataMessage.classList.remove('hidden'); return;
+                }
+                ui.noDataMessage.classList.add('hidden');
+                
+                readings.forEach(reading => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-stone-200 hover:bg-stone-50';
+                    const date = new Date(reading.datetime.seconds * 1000);
+                    const classification = getClassification(reading.sys, reading.dia);
+                    
+                    row.innerHTML = `
+                        <td class="p-3">${date.toLocaleDateString('pt-BR')}</td>
+                        <td class="p-3">${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td class="p-3 font-medium">${reading.sys} / ${reading.dia}</td>
+                        <td class="p-3"><span class="px-2 py-1 text-white text-xs font-bold rounded-full ${classification.color}">${classification.text}</span></td>
+                        <td class="p-3 text-center">
+                            <button data-id="${reading.id}" class="delete-btn text-red-500 hover:text-red-700 font-semibold text-sm">Excluir</button>
+                        </td>
+                    `;
+                    ui.tableBody.appendChild(row);
+                });
+            };
+
             ui.tableBody.addEventListener('click', (e) => {
                 const deleteBtn = e.target.closest('.delete-btn');
                 if (deleteBtn) {
@@ -675,151 +481,8 @@
                     toggleConfirmationModal(true);
                 }
             });
-            
-            ui.medicationForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const name = ui.medicationNameInput.value.trim();
-                const frequency = ui.medicationFrequencyInput.value.trim();
-                if (name && frequency) {
-                    const newMed = { id: Date.now(), name, frequency };
-                    patientProfile.medications = [...(patientProfile.medications || []), newMed];
-                    renderMedicationsList();
-                    ui.medicationForm.reset();
-                }
-            });
 
-            ui.modalMedicationsListDiv.addEventListener('click', (e) => {
-                const deleteBtn = e.target.closest('.delete-med-btn');
-                if (deleteBtn) {
-                    const idToDelete = parseInt(deleteBtn.getAttribute('data-id'));
-                    patientProfile.medications = patientProfile.medications.filter(m => m.id !== idToDelete);
-                    renderMedicationsList();
-                }
-            });
-            
-            const handleDownloadPdf = () => {
-                if (readings.length === 0) {
-                    const originalText = ui.downloadPdfBtn.textContent;
-                    ui.downloadPdfBtn.textContent = "Nenhum dado para baixar!";
-                    ui.downloadPdfBtn.disabled = true;
-                    setTimeout(() => { 
-                        ui.downloadPdfBtn.textContent = originalText;
-                        ui.downloadPdfBtn.disabled = false;
-                    }, 2000);
-                    return;
-                }
-
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-                
-                const patientName = patientProfile.name || 'paciente';
-                let yPos = 22;
-
-                doc.setFontSize(18);
-                doc.text("Relatório de Pressão Arterial", 14, yPos);
-                yPos += 10;
-                
-                doc.setFontSize(11);
-                doc.text(`Paciente: ${patientProfile.name || 'Não informado'}`, 14, yPos); 
-                yPos += 7;
-                const age = getAge(patientProfile.dob);
-                doc.text(`Idade: ${age ? age + ' anos' : 'Não informada'}`, 14, yPos); 
-                yPos += 9;
-
-                doc.setFontSize(12);
-                doc.text("Medicações em Uso:", 14, yPos); 
-                yPos += 7;
-                doc.setFontSize(10);
-                if (patientProfile.medications && patientProfile.medications.length > 0) {
-                    patientProfile.medications.forEach(med => {
-                        doc.text(`- ${med.name} (${med.frequency})`, 14, yPos);
-                        yPos += 5;
-                    });
-                } else {
-                    doc.text("- Nenhuma medicação informada.", 14, yPos);
-                    yPos += 5;
-                }
-                yPos += 5;
-
-                try {
-                    const chartImage = ui.chartCanvas.toDataURL('image/png', 1.0);
-                    const contentWidth = doc.internal.pageSize.getWidth() - 28;
-                    const chartAspectRatio = ui.chartCanvas.width / ui.chartCanvas.height;
-                    const chartHeight = contentWidth / chartAspectRatio;
-
-                    if (yPos + chartHeight > doc.internal.pageSize.getHeight() - 20) {
-                         doc.addPage();
-                         yPos = 20;
-                    }
-
-                    doc.addImage(chartImage, 'PNG', 14, yPos, contentWidth, chartHeight);
-                    yPos += chartHeight + 10;
-                } catch (e) {
-                    console.error("Erro ao adicionar o gráfico ao PDF:", e);
-                    doc.text("Não foi possível gerar a imagem do gráfico.", 14, yPos);
-                    yPos += 7;
-                }
-
-                const tableColumn = ["Data", "Hora", "Pressão (SIS/DIA)", "Classificação"];
-                const tableRows = [];
-                const sortedReadings = [...readings].sort((a, b) => a.datetime.seconds - b.datetime.seconds);
-
-                sortedReadings.forEach(reading => {
-                    const date = new Date(reading.datetime.seconds * 1000);
-                    const classification = classifyPressure(reading.sys, reading.dia);
-                    tableRows.push([
-                        date.toLocaleDateString('pt-BR'),
-                        date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                        `${reading.sys} / ${reading.dia}`,
-                        classification.label
-                    ]);
-                });
-                
-                doc.autoTable({
-                    head: [tableColumn],
-                    body: tableRows,
-                    startY: yPos,
-                    theme: 'striped',
-                    headStyles: { fillColor: [13, 148, 136] } // Cor Teal
-                });
-                
-                const pageHeight = doc.internal.pageSize.getHeight();
-                const totalPages = doc.internal.getNumberOfPages();
-
-                for (let i = 1; i <= totalPages; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(8);
-                    doc.setTextColor(150);
-                    const signatureText = "Relatório gerado por Controle de Pressão Arterial | Desenvolvido por J. Vitor Martins";
-                    const textWidth = doc.getStringUnitWidth(signatureText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-                    const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
-                    doc.text(signatureText, textX, pageHeight - 10);
-                    if (totalPages > 1) {
-                         doc.text(`Página ${i} de ${totalPages}`, doc.internal.pageSize.getWidth() - 25, pageHeight - 10);
-                    }
-                }
-
-                const fileName = `relatorio_pressao_${patientName.replace(/ /g, "_")}.pdf`;
-                doc.save(fileName);
-            };
-            
-            ui.downloadPdfBtn.addEventListener('click', handleDownloadPdf);
-
-            // Eventos do Modal
-            ui.openModalBtn.addEventListener('click', () => toggleModal(true));
-            ui.closeModalBtn.addEventListener('click', () => toggleModal(false));
-            ui.saveProfileBtn.addEventListener('click', handleSaveProfile);
-            ui.patientModal.addEventListener('click', (e) => {
-                if (e.target === ui.patientModal) toggleModal(false);
-            });
-            document.addEventListener('keydown', (e) => {
-                if (e.key === "Escape" && !ui.patientModal.classList.contains('hidden')) {
-                    toggleModal(false);
-                }
-            });
-
-            // Lógica do Modal de Confirmação
-            const toggleConfirmationModal = (show) => {
+             const toggleConfirmationModal = (show) => {
                 const modalContent = ui.confirmationModal.querySelector('div');
                 if (show) {
                     ui.confirmationModal.classList.remove('hidden');
@@ -841,25 +504,42 @@
 
             ui.confirmDeleteBtn.addEventListener('click', async () => {
                 if (readingToDeleteId) {
-                    const readingDocRef = doc(db, "artifacts", appId, "users", userId, "readings", readingToDeleteId);
+                    const readingDocRef = doc(db, "userData", userId, "readings", readingToDeleteId);
                     await deleteDoc(readingDocRef);
                     toggleConfirmationModal(false);
                     readingToDeleteId = null;
                 }
             });
 
+            const renderHeader = () => { ui.patientNameHeader.textContent = patientProfile.name || "Paciente"; };
+            const getAge = (dobString) => { if (!dobString) return ''; const birthDate = new Date(dobString); const today = new Date(); let age = today.getFullYear() - birthDate.getFullYear(); const m = today.getMonth() - birthDate.getMonth(); if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; } return age; };
+            const populatePatientForm = () => { ui.patientNameInput.value = patientProfile.name || ''; ui.patientDobInput.value = patientProfile.dob || ''; ui.patientWeightInput.value = patientProfile.weightKg || ''; ui.patientHeightInput.value = patientProfile.heightM || ''; ui.patientConditionsInput.value = patientProfile.conditions || ''; renderMedicationsList(); };
+            const renderMedicationsList = () => { ui.modalMedicationsListDiv.innerHTML = ''; if (!patientProfile.medications || patientProfile.medications.length === 0) { ui.modalMedicationsListDiv.innerHTML = '<p class="text-stone-500 text-sm">Nenhuma medicação adicionada.</p>'; } else { patientProfile.medications.forEach(med => { const medEl = document.createElement('div'); medEl.className = 'flex justify-between items-center bg-stone-100 p-2 rounded-lg'; medEl.innerHTML = `<span class="text-sm"><span class="font-semibold">${med.name}</span> - ${med.frequency}</span><button data-id="${med.id}" class="delete-med-btn text-red-500 hover:text-red-700 text-xs font-bold">EXCLUIR</button>`; ui.modalMedicationsListDiv.appendChild(medEl); }); } };
+            const setDefaultDateTime = () => { const now = new Date(); const year = now.getFullYear(); const month = String(now.getMonth() + 1).padStart(2, '0'); const day = String(now.getDate()).padStart(2, '0'); ui.dateInput.value = `${year}-${month}-${day}`; const hours = String(now.getHours()).padStart(2, '0'); const minutes = String(now.getMinutes()).padStart(2, '0'); ui.timeInput.value = `${hours}:${minutes}`; };
+            const renderChart = () => { const sortedReadings = [...readings].sort((a, b) => a.datetime.seconds - b.datetime.seconds); const labels = sortedReadings.map(r => { const d = new Date(r.datetime.seconds * 1000); return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }); const sysData = sortedReadings.map(r => r.sys); const diaData = sortedReadings.map(r => r.dia); const data = { labels: labels, datasets: [{ label: 'Sistólica (SYS)', data: sysData, borderColor: '#b91c1c', backgroundColor: 'rgba(185, 28, 28, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 }, { label: 'Diastólica (DIA)', data: diaData, borderColor: '#047857', backgroundColor: 'rgba(4, 120, 87, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 }] }; if (pressureChart) { pressureChart.data = data; pressureChart.update(); } else { const config = { type: 'line', data: data, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, title: { display: true, text: 'mmHg' } } }, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += `${context.parsed.y} mmHg`; } return label; } } } } } }; pressureChart = new Chart(ui.chartCanvas, config); } };
+            const callGeminiAPI = async (payload, maxRetries = 3) => { let attempt = 0; while (attempt < maxRetries) { try { const response = await fetch(GEMINI_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!response.ok) { const errorBody = await response.json(); console.error('Erro na API Gemini:', errorBody); if (errorBody.error && errorBody.error.message.includes("API key not valid")) { return "Erro: A chave de API não é válida. Verifique a chave no código e tente novamente."; } throw new Error(`HTTP error! status: ${response.status}`); } const result = await response.json(); if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) { return result.candidates[0].content.parts[0].text; } else { const finishReason = result.candidates?.[0]?.finishReason; if (finishReason && finishReason !== 'STOP') { return `A análise não pôde ser gerada. Motivo: ${finishReason}. Tente novamente.`; } throw new Error('Resposta da API inválida ou vazia.'); } } catch (error) { attempt++; console.error(`Tentativa ${attempt} de chamar a API Gemini falhou:`, error); if (attempt >= maxRetries) { return "Desculpe, não foi possível obter uma resposta da análise inteligente no momento. Verifique a sua conexão e a chave de API."; } const delay = Math.pow(2, attempt) * 1000; await new Promise(res => setTimeout(res, delay)); } } };
+            const handleAnalysis = async () => { if (readings.length === 0) { ui.analysisResult.textContent = "Não há dados suficientes para uma análise."; return; } ui.loadingSpinner.classList.remove('hidden'); ui.analysisResult.textContent = ''; const formattedReadings = readings.map(r => `${new Date(r.datetime.seconds * 1000).toLocaleString('pt-BR')} - ${r.sys}/${r.dia}`).join('\n'); const medicationsText = patientProfile.medications && patientProfile.medications.length > 0 ? patientProfile.medications.map(m => `- ${m.name} (${m.frequency})`).join('\n') : 'Nenhuma medicação informada.'; const patientData = `Dados do paciente:\n- Nome: ${patientProfile.name}\n- Idade: ${getAge(patientProfile.dob)} anos\n- Condições: ${patientProfile.conditions || 'Nenhuma informada'}\n- Medicações:\n${medicationsText}`; const systemPrompt = "Você é um assistente de saúde virtual. Analise os dados de pressão arterial e forneça um resumo geral em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO. Sempre inclua um aviso claro para consultar um médico."; const userQuery = `Analise as seguintes leituras de pressão arterial (Sistólica/Diastólica) para o paciente abaixo.\n\n${patientData}\n\nLeituras:\n${formattedReadings}`; const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }; const responseText = await callGeminiAPI(payload); ui.analysisResult.textContent = responseText; ui.loadingSpinner.classList.add('hidden'); };
+            const handleTipRequest = async () => { ui.loadingSpinner.classList.remove('hidden'); ui.analysisResult.textContent = ''; const systemPrompt = "Você é um assistente de saúde virtual. Forneça uma dica de saúde concisa e prática para o controlo da pressão arterial, em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO."; const userQuery = "Gere uma dica de saúde sobre controlo da pressão arterial."; const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }; const responseText = await callGeminiAPI(payload); ui.analysisResult.textContent = responseText; ui.loadingSpinner.classList.add('hidden'); };
+            const handleDownloadPdf = () => { if (readings.length === 0) { alert("Não há dados para gerar o PDF."); return; } const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.setFontSize(18); doc.text("Relatório de Pressão Arterial", 14, 22); doc.setFontSize(11); let yPos = 32; doc.text(`Paciente: ${patientProfile.name || 'Não informado'}`, 14, yPos); yPos += 7; const age = getAge(patientProfile.dob); doc.text(`Idade: ${age ? age + ' anos' : 'Não informada'}`, 14, yPos); yPos += 9; if (chartCanvas) { const chartImage = chartCanvas.toDataURL('image/png', 1.0); const imgProps = doc.getImageProperties(chartImage); const pdfWidth = doc.internal.pageSize.getWidth(); const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width; doc.addImage(chartImage, 'PNG', 14, yPos, pdfWidth - 28, pdfHeight); yPos += pdfHeight + 10; } doc.autoTable({ head: [["Data", "Hora", "Pressão (SIS/DIA)", "Classificação"]], body: readings.map(r => { const d = new Date(r.datetime.seconds * 1000); return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), `${r.sys} / ${r.dia}`, getClassification(r.sys, r.dia).text] }), startY: yPos, }); const pageCount = doc.internal.getNumberOfPages(); for(let i = 1; i <= pageCount; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150); doc.text('Página ' + String(i) + ' de ' + String(pageCount), doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' }); } const fileName = `relatorio_pressao_${(patientProfile.name || 'paciente').replace(/ /g, "_")}.pdf`; doc.save(fileName); };
+            function renderAll() { renderHeader(); renderTable(); renderChart(); }
+            const toggleModal = (show) => { const modalContent = ui.patientModal.querySelector('div'); if (show) { populatePatientForm(); ui.patientModal.classList.remove('hidden'); setTimeout(() => { ui.patientModal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10); } else { ui.patientModal.classList.add('opacity-0'); modalContent.classList.add('scale-95'); setTimeout(() => { ui.patientModal.classList.add('hidden'); }, 250); } };
+            ui.openModalBtn.addEventListener('click', () => toggleModal(true));
+            ui.closeModalBtn.addEventListener('click', () => toggleModal(false));
+            ui.saveProfileBtn.addEventListener('click', handleSaveProfile);
+            ui.patientModal.addEventListener('click', (e) => { if (e.target === ui.patientModal) toggleModal(false); });
+            document.addEventListener('keydown', (e) => { if (e.key === "Escape" && !ui.patientModal.classList.contains('hidden')) { toggleModal(false); }});
+            ui.medicationForm.addEventListener('submit', (e) => { e.preventDefault(); const name = ui.medicationNameInput.value.trim(); const frequency = ui.medicationFrequencyInput.value.trim(); if (name && frequency) { const newMed = { id: Date.now(), name: name, frequency: frequency }; if (!patientProfile.medications) { patientProfile.medications = []; } patientProfile.medications.push(newMed); renderMedicationsList(); ui.medicationForm.reset(); } });
+            ui.modalMedicationsListDiv.addEventListener('click', (e) => { if (e.target.classList.contains('delete-med-btn')) { const idToDelete = parseInt(e.target.getAttribute('data-id')); patientProfile.medications = patientProfile.medications.filter(m => m.id !== idToDelete); renderMedicationsList(); } });
+            ui.downloadPdfBtn.addEventListener('click', handleDownloadPdf);
             ui.analyzeBtn.addEventListener('click', handleAnalysis);
             ui.tipBtn.addEventListener('click', handleTipRequest);
 
             // --- INICIALIZAÇÃO ---
-            setDefaultDateTime();
-            setupFirebase();
+            initializeFirebase();
         });
     </script>
 </body>
 </html>
-
-
 
 
 

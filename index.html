@@ -96,7 +96,7 @@
                 <section id="history" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                         <h2 class="text-2xl font-semibold text-teal-700">Histórico de Medições</h2>
-                           <button id="download-pdf-btn" class="mt-4 sm:mt-0 bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition shadow-md">
+                           <button id="download-pdf-btn" class="mt-4 sm:mt-0 bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition shadow-md transition-opacity">
                                  Transferir Histórico (PDF)
                            </button>
                     </div>
@@ -117,27 +117,10 @@
                          <p id="no-data-message" class="text-center text-stone-500 py-8 hidden">Nenhuma medição registada ainda.</p>
                     </div>
                 </section>
-                
-                <!-- Secção IA -->
-                <section id="gemini-features" class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200">
-                    <h2 class="text-2xl font-semibold mb-4 text-teal-700">Análise Inteligente</h2>
-                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                           <button id="analyze-btn" class="flex-1 bg-sky-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-transform transform hover:scale-105 shadow-md">
-                                 ✨ Gerar Análise dos Dados
-                           </button>
-                           <button id="tip-btn" class="flex-1 bg-amber-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-transform transform hover:scale-105 shadow-md">
-                                 ✨ Gerar Dica de Saúde
-                           </button>
-                    </div>
-                    <div id="gemini-output" class="mt-4 p-4 bg-stone-100 rounded-lg min-h-[100px] border border-stone-200 text-stone-700 whitespace-pre-wrap">
-                        <div id="loading-spinner" class="hidden mx-auto loader"></div>
-                        <p id="analysis-result"></p>
-                    </div>
-                </section>
             </main>
             
             <footer class="text-center mt-8 py-4">
-                <p id="user-info" class="text-xs text-stone-400 mt-2"></p>
+                <p class="text-xs text-stone-400 mt-2">Desenvolvido por: <i class="font-medium">J. Vitor Martins</i></p>
             </footer>
         </div>
         
@@ -175,17 +158,34 @@
                 
                 <h3 class="text-xl font-semibold mb-4 text-teal-700">Medicações em Uso</h3>
                 <div id="modal-medications-list" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
-                <form id="medication-form" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                    <div class="sm:col-span-1">
-                        <label for="medication-name" class="block text-sm font-medium text-stone-600 mb-1">Nome da Medicação</label>
-                        <input type="text" id="medication-name" placeholder="Ex: Losartana" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                
+                <!-- Formulário de Medicação Dinâmico -->
+                <form id="medication-form" class="space-y-4 p-4 border border-stone-200 rounded-lg">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="medication-name" class="block text-sm font-medium text-stone-600 mb-1">Nome da Medicação</label>
+                            <input type="text" id="medication-name" placeholder="Ex: Losartana" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label for="medication-frequency" class="block text-sm font-medium text-stone-600 mb-1">Frequência</label>
+                            <select id="medication-frequency" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <option value="1" selected>1 vez por dia</option>
+                                <option value="2">2 vezes por dia</option>
+                                <option value="3">3 vezes por dia</option>
+                                <option value="4">4 vezes por dia</option>
+                                <option value="5">5 vezes por dia</option>
+                                <option value="6">6 vezes por dia</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="sm:col-span-1">
-                        <label for="medication-frequency" class="block text-sm font-medium text-stone-600 mb-1">Frequência</label>
-                        <input type="text" id="medication-frequency" placeholder="Ex: 1 vez ao dia" class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <div>
+                        <label class="block text-sm font-medium text-stone-600 mb-2">Horários</label>
+                        <div id="medication-times-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <!-- Horários dinâmicos serão inseridos aqui -->
+                        </div>
                     </div>
-                    <div class="sm:col-span-1">
-                           <button type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-transform transform hover:scale-105 shadow-md">Adicionar</button>
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-teal-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-transform transform hover:scale-105 shadow-md">Adicionar Medicação</button>
                     </div>
                 </form>
 
@@ -230,7 +230,6 @@
             };
 
             // --- PASSO 2: DEFINA O EMAIL E A SENHA ÚNICOS PARA O PROJETO ---
-            // O email foi alterado uma última vez para garantir uma criação de conta 100% limpa.
             const APP_EMAIL = "app.master.user@pressaoarterial.com";
             const APP_PASSWORD = "Apto30211@";
 
@@ -251,10 +250,6 @@
                 noDataMessage: document.getElementById('no-data-message'),
                 formError: document.getElementById('form-error'),
                 chartCanvas: document.getElementById('pressureChart'),
-                analyzeBtn: document.getElementById('analyze-btn'),
-                tipBtn: document.getElementById('tip-btn'),
-                loadingSpinner: document.getElementById('loading-spinner'),
-                analysisResult: document.getElementById('analysis-result'),
                 downloadPdfBtn: document.getElementById('download-pdf-btn'),
                 patientNameHeader: document.getElementById('patient-name-header'),
                 patientModal: document.getElementById('patient-modal'),
@@ -270,8 +265,8 @@
                 medicationForm: document.getElementById('medication-form'),
                 medicationNameInput: document.getElementById('medication-name'),
                 medicationFrequencyInput: document.getElementById('medication-frequency'),
+                medicationTimesContainer: document.getElementById('medication-times-container'),
                 saveReadingBtn: document.getElementById('save-reading-btn'),
-                userInfo: document.getElementById('user-info'),
                 confirmationModal: document.getElementById('confirmation-modal'),
                 confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
                 cancelDeleteBtn: document.getElementById('cancel-delete-btn'),
@@ -282,9 +277,6 @@
             let readings = [];
             let db, auth, userId;
             let readingToDeleteId = null; 
-            
-            const GEMINI_API_KEY = ""; 
-            const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
             
             // --- LÓGICA DE LOGIN E AUTENTICAÇÃO ---
             const initializeFirebase = () => {
@@ -306,20 +298,16 @@
                 const enteredPassword = ui.passwordInput.value;
                 ui.loginError.textContent = '';
 
-                // 1. Valida a senha no lado do cliente primeiro. Esta é a verificação principal.
                 if (enteredPassword !== APP_PASSWORD) {
                     ui.loginError.textContent = 'Senha incorreta.';
                     return;
                 }
 
-                // 2. Se a senha estiver correta, tenta fazer login ou criar a conta.
                 try {
-                    // Tenta fazer login, pois será a ação mais comum após o primeiro acesso.
                     const userCredential = await signInWithEmailAndPassword(auth, APP_EMAIL, APP_PASSWORD);
                     userId = userCredential.user.uid;
                     initializeAppLogic();
                 } catch (error) {
-                    // Se o utilizador não existir, cria-o na primeira vez.
                     if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
                         try {
                             const newUserCredential = await createUserWithEmailAndPassword(auth, APP_EMAIL, APP_PASSWORD);
@@ -330,7 +318,6 @@
                             console.error("Erro de criação:", creationError);
                         }
                     } else {
-                        // Para qualquer outro erro inesperado
                         ui.loginError.textContent = 'Ocorreu um erro. Verifique a consola.';
                         console.error("Erro de login inesperado:", error);
                     }
@@ -354,8 +341,7 @@
                     if (docSnap.exists()) {
                         patientProfile = docSnap.data();
                     } else {
-                        // Cria um perfil padrão se não existir
-                        const defaultProfile = { name: "Maria José Martins", dob: "1967-01-14", weightKg: 68, heightM: 1.70, conditions: "Hipertensão", medications: [{ id: Date.now(), name: 'Losartana Potássica', frequency: '1 vez ao dia' }] };
+                        const defaultProfile = { name: "Maria José Martins", dob: "1967-01-14", weightKg: 68, heightM: 1.70, conditions: "Hipertensão", medications: [{ id: Date.now(), name: 'Losartana Potássica', frequency: '1 vez ao dia', horarios: ['Manhã'] }] };
                         setDoc(profileDocRef, defaultProfile);
                         patientProfile = defaultProfile;
                     }
@@ -451,9 +437,14 @@
             const renderTable = () => {
                 ui.tableBody.innerHTML = '';
                 if (readings.length === 0) {
-                    ui.noDataMessage.classList.remove('hidden'); return;
+                    ui.noDataMessage.classList.remove('hidden');
+                    ui.downloadPdfBtn.disabled = true;
+                    ui.downloadPdfBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    return;
                 }
                 ui.noDataMessage.classList.add('hidden');
+                ui.downloadPdfBtn.disabled = false;
+                ui.downloadPdfBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 
                 readings.forEach(reading => {
                     const row = document.createElement('tr');
@@ -514,32 +505,255 @@
             const renderHeader = () => { ui.patientNameHeader.textContent = patientProfile.name || "Paciente"; };
             const getAge = (dobString) => { if (!dobString) return ''; const birthDate = new Date(dobString); const today = new Date(); let age = today.getFullYear() - birthDate.getFullYear(); const m = today.getMonth() - birthDate.getMonth(); if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; } return age; };
             const populatePatientForm = () => { ui.patientNameInput.value = patientProfile.name || ''; ui.patientDobInput.value = patientProfile.dob || ''; ui.patientWeightInput.value = patientProfile.weightKg || ''; ui.patientHeightInput.value = patientProfile.heightM || ''; ui.patientConditionsInput.value = patientProfile.conditions || ''; renderMedicationsList(); };
-            const renderMedicationsList = () => { ui.modalMedicationsListDiv.innerHTML = ''; if (!patientProfile.medications || patientProfile.medications.length === 0) { ui.modalMedicationsListDiv.innerHTML = '<p class="text-stone-500 text-sm">Nenhuma medicação adicionada.</p>'; } else { patientProfile.medications.forEach(med => { const medEl = document.createElement('div'); medEl.className = 'flex justify-between items-center bg-stone-100 p-2 rounded-lg'; medEl.innerHTML = `<span class="text-sm"><span class="font-semibold">${med.name}</span> - ${med.frequency}</span><button data-id="${med.id}" class="delete-med-btn text-red-500 hover:text-red-700 text-xs font-bold">EXCLUIR</button>`; ui.modalMedicationsListDiv.appendChild(medEl); }); } };
+            
+            const renderMedicationsList = () => { 
+                ui.modalMedicationsListDiv.innerHTML = ''; 
+                if (!patientProfile.medications || patientProfile.medications.length === 0) { 
+                    ui.modalMedicationsListDiv.innerHTML = '<p class="text-stone-500 text-sm">Nenhuma medicação adicionada.</p>'; 
+                } else { 
+                    patientProfile.medications.forEach(med => { 
+                        const medEl = document.createElement('div'); 
+                        medEl.className = 'flex justify-between items-start bg-stone-100 p-2 rounded-lg'; 
+                        const horariosText = med.horarios && med.horarios.length > 0 ? `Horários: ${med.horarios.join(', ')}` : '';
+                        medEl.innerHTML = `
+                            <div class="flex-grow">
+                                <p class="font-semibold text-sm">${med.name}</p>
+                                <p class="text-xs text-stone-500">${med.frequency}</p>
+                                <p class="text-xs text-stone-500">${horariosText}</p>
+                            </div>
+                            <button data-id="${med.id}" class="delete-med-btn text-red-500 hover:text-red-700 text-xs font-bold self-start pl-4">EXCLUIR</button>
+                        `;
+                        ui.modalMedicationsListDiv.appendChild(medEl); 
+                    }); 
+                } 
+            };
+            
             const setDefaultDateTime = () => { const now = new Date(); const year = now.getFullYear(); const month = String(now.getMonth() + 1).padStart(2, '0'); const day = String(now.getDate()).padStart(2, '0'); ui.dateInput.value = `${year}-${month}-${day}`; const hours = String(now.getHours()).padStart(2, '0'); const minutes = String(now.getMinutes()).padStart(2, '0'); ui.timeInput.value = `${hours}:${minutes}`; };
             const renderChart = () => { const sortedReadings = [...readings].sort((a, b) => a.datetime.seconds - b.datetime.seconds); const labels = sortedReadings.map(r => { const d = new Date(r.datetime.seconds * 1000); return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }); const sysData = sortedReadings.map(r => r.sys); const diaData = sortedReadings.map(r => r.dia); const data = { labels: labels, datasets: [{ label: 'Sistólica (SYS)', data: sysData, borderColor: '#b91c1c', backgroundColor: 'rgba(185, 28, 28, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 }, { label: 'Diastólica (DIA)', data: diaData, borderColor: '#047857', backgroundColor: 'rgba(4, 120, 87, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 }] }; if (pressureChart) { pressureChart.data = data; pressureChart.update(); } else { const config = { type: 'line', data: data, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, title: { display: true, text: 'mmHg' } } }, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += `${context.parsed.y} mmHg`; } return label; } } } } } }; pressureChart = new Chart(ui.chartCanvas, config); } };
-            const callGeminiAPI = async (payload, maxRetries = 3) => { let attempt = 0; while (attempt < maxRetries) { try { const response = await fetch(GEMINI_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!response.ok) { const errorBody = await response.json(); console.error('Erro na API Gemini:', errorBody); if (errorBody.error && errorBody.error.message.includes("API key not valid")) { return "Erro: A chave de API não é válida. Verifique a chave no código e tente novamente."; } throw new Error(`HTTP error! status: ${response.status}`); } const result = await response.json(); if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) { return result.candidates[0].content.parts[0].text; } else { const finishReason = result.candidates?.[0]?.finishReason; if (finishReason && finishReason !== 'STOP') { return `A análise não pôde ser gerada. Motivo: ${finishReason}. Tente novamente.`; } throw new Error('Resposta da API inválida ou vazia.'); } } catch (error) { attempt++; console.error(`Tentativa ${attempt} de chamar a API Gemini falhou:`, error); if (attempt >= maxRetries) { return "Desculpe, não foi possível obter uma resposta da análise inteligente no momento. Verifique a sua conexão e a chave de API."; } const delay = Math.pow(2, attempt) * 1000; await new Promise(res => setTimeout(res, delay)); } } };
-            const handleAnalysis = async () => { if (readings.length === 0) { ui.analysisResult.textContent = "Não há dados suficientes para uma análise."; return; } ui.loadingSpinner.classList.remove('hidden'); ui.analysisResult.textContent = ''; const formattedReadings = readings.map(r => `${new Date(r.datetime.seconds * 1000).toLocaleString('pt-BR')} - ${r.sys}/${r.dia}`).join('\n'); const medicationsText = patientProfile.medications && patientProfile.medications.length > 0 ? patientProfile.medications.map(m => `- ${m.name} (${m.frequency})`).join('\n') : 'Nenhuma medicação informada.'; const patientData = `Dados do paciente:\n- Nome: ${patientProfile.name}\n- Idade: ${getAge(patientProfile.dob)} anos\n- Condições: ${patientProfile.conditions || 'Nenhuma informada'}\n- Medicações:\n${medicationsText}`; const systemPrompt = "Você é um assistente de saúde virtual. Analise os dados de pressão arterial e forneça um resumo geral em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO. Sempre inclua um aviso claro para consultar um médico."; const userQuery = `Analise as seguintes leituras de pressão arterial (Sistólica/Diastólica) para o paciente abaixo.\n\n${patientData}\n\nLeituras:\n${formattedReadings}`; const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }; const responseText = await callGeminiAPI(payload); ui.analysisResult.textContent = responseText; ui.loadingSpinner.classList.add('hidden'); };
-            const handleTipRequest = async () => { ui.loadingSpinner.classList.remove('hidden'); ui.analysisResult.textContent = ''; const systemPrompt = "Você é um assistente de saúde virtual. Forneça uma dica de saúde concisa e prática para o controlo da pressão arterial, em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO."; const userQuery = "Gere uma dica de saúde sobre controlo da pressão arterial."; const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }; const responseText = await callGeminiAPI(payload); ui.analysisResult.textContent = responseText; ui.loadingSpinner.classList.add('hidden'); };
-            const handleDownloadPdf = () => { if (readings.length === 0) { alert("Não há dados para gerar o PDF."); return; } const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.setFontSize(18); doc.text("Relatório de Pressão Arterial", 14, 22); doc.setFontSize(11); let yPos = 32; doc.text(`Paciente: ${patientProfile.name || 'Não informado'}`, 14, yPos); yPos += 7; const age = getAge(patientProfile.dob); doc.text(`Idade: ${age ? age + ' anos' : 'Não informada'}`, 14, yPos); yPos += 9; if (chartCanvas) { const chartImage = chartCanvas.toDataURL('image/png', 1.0); const imgProps = doc.getImageProperties(chartImage); const pdfWidth = doc.internal.pageSize.getWidth(); const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width; doc.addImage(chartImage, 'PNG', 14, yPos, pdfWidth - 28, pdfHeight); yPos += pdfHeight + 10; } doc.autoTable({ head: [["Data", "Hora", "Pressão (SIS/DIA)", "Classificação"]], body: readings.map(r => { const d = new Date(r.datetime.seconds * 1000); return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), `${r.sys} / ${r.dia}`, getClassification(r.sys, r.dia).text] }), startY: yPos, }); const pageCount = doc.internal.getNumberOfPages(); for(let i = 1; i <= pageCount; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150); doc.text('Página ' + String(i) + ' de ' + String(pageCount), doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' }); } const fileName = `relatorio_pressao_${(patientProfile.name || 'paciente').replace(/ /g, "_")}.pdf`; doc.save(fileName); };
+            
+            const handleDownloadPdf = () => {
+                if (readings.length === 0) { return; }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // --- AJUSTES DE TAMANHO PARA O PDF ---
+                const titleFontSize = 14;
+                const baseFontSize = 9;
+                const smallFontSize = 8;
+                const tinyFontSize = 7;
+                const verticalMargin = 4.5; // Espaçamento vertical ainda mais reduzido
+
+                // 1. Título Centralizado
+                doc.setFontSize(titleFontSize);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                doc.text("Relatório de Pressão Arterial", pdfWidth / 2, 20, { align: 'center' });
+                
+                let yPos = 30;
+
+                // 2. Nome do Paciente em Negrito
+                doc.setFontSize(baseFontSize);
+                doc.setFont('helvetica', 'normal');
+                doc.text("Paciente: ", 14, yPos);
+                const labelWidth = doc.getStringUnitWidth("Paciente: ") * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                doc.setFont('helvetica', 'bold');
+                doc.text(patientProfile.name || 'Não informado', 14 + labelWidth, yPos);
+                doc.setFont('helvetica', 'normal'); // Resetar para normal
+                yPos += verticalMargin;
+
+                const age = getAge(patientProfile.dob);
+                doc.text(`Idade: ${age ? age + ' anos' : 'Não informada'}`, 14, yPos);
+                yPos += verticalMargin + 2;
+
+                // Adiciona as medicações ao PDF com fonte menor
+                doc.setFontSize(baseFontSize);
+                doc.text("Medicações em Uso:", 14, yPos);
+                yPos += verticalMargin;
+                doc.setFontSize(smallFontSize);
+                if (patientProfile.medications && patientProfile.medications.length > 0) {
+                    patientProfile.medications.forEach(med => {
+                        const horariosText = med.horarios && med.horarios.length > 0 ? ` - Horários: ${med.horarios.join(', ')}` : '';
+                        const medText = `- ${med.name} (${med.frequency})${horariosText}`;
+                        const splitText = doc.splitTextToSize(medText, doc.internal.pageSize.getWidth() - 28);
+                        doc.text(splitText, 14, yPos);
+                        yPos += (splitText.length * 4); // Espaçamento entre linhas menor
+                    });
+                } else {
+                    doc.text("- Nenhuma medicação informada.", 14, yPos);
+                    yPos += verticalMargin;
+                }
+                yPos += 3;
+
+
+                if (ui.chartCanvas && pressureChart) {
+                    pressureChart.options.animation = false;
+                    pressureChart.update();
+                    const chartImage = ui.chartCanvas.toDataURL('image/png', 1.0);
+                    pressureChart.options.animation = true; 
+
+                    const imgProps = doc.getImageProperties(chartImage);
+                    const aspect = imgProps.height / imgProps.width;
+                    const imageWidth = pdfWidth - 28;
+                    const imageHeight = imageWidth * aspect;
+                    doc.addImage(chartImage, 'PNG', 14, yPos, imageWidth, imageHeight);
+                    yPos += imageHeight + 5;
+                }
+                
+                const sortedReadingsForPdf = [...readings].sort((a, b) => a.datetime.seconds - b.datetime.seconds);
+
+                doc.autoTable({
+                    head: [["Data", "Hora", "Pressão (SIS/DIA)", "Classificação"]],
+                    body: sortedReadingsForPdf.map(r => {
+                        const d = new Date(r.datetime.seconds * 1000);
+                        return [
+                            d.toLocaleDateString('pt-BR'),
+                            d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                            `${r.sys} / ${r.dia}`,
+                            getClassification(r.sys, r.dia).text
+                        ];
+                    }),
+                    startY: yPos,
+                    // 3 & 4. Estilos para tornar a tabela mais compacta e alinhar colunas
+                    styles: {
+                        fontSize: tinyFontSize, // Reduzido de 8 para 7
+                        cellPadding: 1.5, // Reduzido de 2 para 1.5
+                    },
+                    headStyles: {
+                        fillColor: [22, 163, 74], 
+                        fontSize: smallFontSize, // Reduzido de 9 para 8
+                        cellPadding: 1.8,
+                    },
+                    columnStyles: {
+                        2: { halign: 'center' } // Centraliza a coluna de Pressão
+                    }
+                });
+
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const pageWidth = doc.internal.pageSize.getWidth();
+
+                    // --- INFORMAÇÕES DE RODAPÉ ---
+                    doc.setFontSize(tinyFontSize);
+                    doc.setTextColor(150);
+                    
+                    const footerY = pageHeight - 7;
+                    const text1 = "Sistema de Controle de Pressão Arterial desenvolvido por: ";
+                    const text2 = "J. Vitor Martins";
+                    const text3 = " - Dados inseridos por: ";
+                    const text4 = "J. Vitor Martins";
+
+                    // Calcular a largura total para centralização
+                    doc.setFont('helvetica', 'normal');
+                    const width1 = doc.getStringUnitWidth(text1) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                    const width3 = doc.getStringUnitWidth(text3) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                    doc.setFont('helvetica', 'italic');
+                    const width2 = doc.getStringUnitWidth(text2) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                    const width4 = doc.getStringUnitWidth(text4) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                    const totalWidth = width1 + width2 + width3 + width4;
+                    
+                    let currentX = (pageWidth - totalWidth) / 2;
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(text1, currentX, footerY);
+                    currentX += width1;
+
+                    doc.setFont('helvetica', 'italic');
+                    doc.text(text2, currentX, footerY);
+                    currentX += width2;
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(text3, currentX, footerY);
+                    currentX += width3;
+                    
+                    doc.setFont('helvetica', 'italic');
+                    doc.text(text4, currentX, footerY);
+                }
+
+                const fileName = `relatorio_pressao_${(patientProfile.name || 'paciente').replace(/ /g, "_")}.pdf`;
+                doc.save(fileName);
+            };
+
+            const renderMedicationTimePickers = (count) => {
+                ui.medicationTimesContainer.innerHTML = '';
+                if (count > 0) {
+                    for (let i = 1; i <= count; i++) {
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = `
+                            <label for="med-time-${i}" class="block text-xs font-medium text-stone-500">${i}º Horário</label>
+                            <select id="med-time-${i}" class="mt-1 w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <option value="Manhã">Manhã</option>
+                                <option value="Tarde">Tarde</option>
+                                <option value="Noite">Noite</option>
+                            </select>
+                        `;
+                        ui.medicationTimesContainer.appendChild(wrapper);
+                    }
+                }
+            };
+            
             function renderAll() { renderHeader(); renderTable(); renderChart(); }
-            const toggleModal = (show) => { const modalContent = ui.patientModal.querySelector('div'); if (show) { populatePatientForm(); ui.patientModal.classList.remove('hidden'); setTimeout(() => { ui.patientModal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10); } else { ui.patientModal.classList.add('opacity-0'); modalContent.classList.add('scale-95'); setTimeout(() => { ui.patientModal.classList.add('hidden'); }, 250); } };
+            const toggleModal = (show) => { 
+                const modalContent = ui.patientModal.querySelector('div'); 
+                if (show) { 
+                    populatePatientForm(); 
+                    renderMedicationTimePickers(parseInt(ui.medicationFrequencyInput.value, 10));
+                    ui.patientModal.classList.remove('hidden'); 
+                    setTimeout(() => { 
+                        ui.patientModal.classList.remove('opacity-0'); 
+                        modalContent.classList.remove('scale-95'); 
+                    }, 10); 
+                } else { 
+                    ui.patientModal.classList.add('opacity-0'); 
+                    modalContent.classList.add('scale-95'); 
+                    setTimeout(() => { ui.patientModal.classList.add('hidden'); }, 250); 
+                } 
+            };
+
             ui.openModalBtn.addEventListener('click', () => toggleModal(true));
             ui.closeModalBtn.addEventListener('click', () => toggleModal(false));
             ui.saveProfileBtn.addEventListener('click', handleSaveProfile);
             ui.patientModal.addEventListener('click', (e) => { if (e.target === ui.patientModal) toggleModal(false); });
             document.addEventListener('keydown', (e) => { if (e.key === "Escape" && !ui.patientModal.classList.contains('hidden')) { toggleModal(false); }});
-            ui.medicationForm.addEventListener('submit', (e) => { e.preventDefault(); const name = ui.medicationNameInput.value.trim(); const frequency = ui.medicationFrequencyInput.value.trim(); if (name && frequency) { const newMed = { id: Date.now(), name: name, frequency: frequency }; if (!patientProfile.medications) { patientProfile.medications = []; } patientProfile.medications.push(newMed); renderMedicationsList(); ui.medicationForm.reset(); } });
+            
+            ui.medicationFrequencyInput.addEventListener('change', (e) => {
+                renderMedicationTimePickers(parseInt(e.target.value, 10));
+            });
+
+            ui.medicationForm.addEventListener('submit', (e) => { 
+                e.preventDefault(); 
+                const name = ui.medicationNameInput.value.trim(); 
+                const frequencySelect = ui.medicationFrequencyInput;
+                const frequencyText = frequencySelect.options[frequencySelect.selectedIndex].text;
+                
+                if (name) { 
+                    const timePickers = ui.medicationTimesContainer.querySelectorAll('select');
+                    const horarios = Array.from(timePickers).map(select => select.value);
+
+                    const newMed = { 
+                        id: Date.now(), 
+                        name: name, 
+                        frequency: frequencyText,
+                        horarios: horarios
+                    }; 
+                    if (!patientProfile.medications) { 
+                        patientProfile.medications = []; 
+                    } 
+                    patientProfile.medications.push(newMed); 
+                    renderMedicationsList(); 
+                    ui.medicationForm.reset(); 
+                    renderMedicationTimePickers(1);
+                } 
+            });
+
             ui.modalMedicationsListDiv.addEventListener('click', (e) => { if (e.target.classList.contains('delete-med-btn')) { const idToDelete = parseInt(e.target.getAttribute('data-id')); patientProfile.medications = patientProfile.medications.filter(m => m.id !== idToDelete); renderMedicationsList(); } });
             ui.downloadPdfBtn.addEventListener('click', handleDownloadPdf);
-            ui.analyzeBtn.addEventListener('click', handleAnalysis);
-            ui.tipBtn.addEventListener('click', handleTipRequest);
-
+            
             // --- INICIALIZAÇÃO ---
             initializeFirebase();
         });
     </script>
 </body>
 </html>
-
-
 

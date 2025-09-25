@@ -44,9 +44,22 @@
         .modal {
             transition: opacity 0.25s ease;
         }
+        .pressure-badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-800">
+
+    <div id="app-loader" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
+        <div class="loader"></div>
+        <p class="mt-4 text-stone-600">Carregando dados...</p>
+    </div>
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
@@ -79,7 +92,7 @@
                            <input type="number" id="diastolic" name="diastolic" placeholder="ex: 80" required class="w-full px-3 py-2 border border-stone-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
                         </div>
                     </div>
-                    <button type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-transform transform hover:scale-105 shadow-md">
+                    <button id="save-reading-btn" type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all transform hover:scale-105 shadow-md">
                         Salvar Medição
                     </button>
                 </form>
@@ -106,7 +119,8 @@
                             <tr class="border-b-2 border-stone-200">
                                 <th class="p-3 text-sm font-semibold tracking-wider">Data</th>
                                 <th class="p-3 text-sm font-semibold tracking-wider">Hora</th>
-                                <th class="p-3 text-sm font-semibold tracking-wider">Pressão (SIS/DIA)</th>
+                                <th class="p-3 text-sm font-semibold tracking-wider">Pressão (SYS/DIA)</th>
+                                <th class="p-3 text-sm font-semibold tracking-wider">Classificação</th>
                                 <th class="p-3 text-sm font-semibold tracking-wider text-center">Ação</th>
                             </tr>
                         </thead>
@@ -135,14 +149,16 @@
         </main>
         
         <footer class="text-center mt-8 py-4">
-            <p class="text-sm text-stone-500">Atenção: Os dados são salvos apenas no seu navegador. Limpar o cache ou usar outro dispositivo não mostrará o histórico.</p>
+            <p class="text-sm text-stone-500">
+                <span id="user-info" class="font-mono text-xs"></span>
+            </p>
             <p class="text-xs text-stone-400 mt-2">Controle de Pressão Arterial desenvolvido por: <i class="font-medium">J. Vitor Martins</i></p>
         </footer>
     </div>
     
     <!-- Patient Data Modal -->
-    <div id="patient-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 transform transition-transform scale-95 max-h-[90vh] overflow-y-auto">
+    <div id="patient-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-40">
+        <div id="modal-content" class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 transform transition-transform scale-95 max-h-[90vh] overflow-y-auto">
             <h2 class="text-2xl font-bold mb-6 text-teal-800">Dados do Paciente</h2>
             
             <form id="patient-form" class="space-y-4">
@@ -195,67 +211,314 @@
         </div>
     </div>
 
+    <!-- Modal de Confirmação para Exclusão -->
+    <div id="confirmation-modal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden opacity-0 z-50">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 sm:p-8 text-center transform transition-transform scale-95">
+            <h3 id="confirmation-title" class="text-xl font-bold mb-4 text-stone-800">Confirmar Exclusão</h3>
+            <p id="confirmation-message" class="text-stone-600 mb-6">Tem certeza que deseja excluir esta medição? Esta ação não pode ser desfeita.</p>
+            <div class="flex justify-center gap-4">
+                <button id="cancel-delete-btn" class="bg-stone-200 text-stone-800 font-bold py-2 px-6 rounded-lg hover:bg-stone-300 transition">Cancelar</button>
+                <button id="confirm-delete-btn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition shadow-md">Excluir</button>
+            </div>
+        </div>
+    </div>
 
-    <script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, collection, addDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         document.addEventListener('DOMContentLoaded', () => {
-            const pressureForm = document.getElementById('pressure-form');
-            const dateInput = document.getElementById('date');
-            const timeInput = document.getElementById('time');
-            const systolicInput = document.getElementById('systolic');
-            const diastolicInput = document.getElementById('diastolic');
-            const tableBody = document.getElementById('history-table-body');
-            const noDataMessage = document.getElementById('no-data-message');
-            const formError = document.getElementById('form-error');
-            const chartCanvas = document.getElementById('pressureChart');
-            
-            const analyzeBtn = document.getElementById('analyze-btn');
-            const tipBtn = document.getElementById('tip-btn');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const analysisResult = document.getElementById('analysis-result');
-            const downloadPdfBtn = document.getElementById('download-pdf-btn');
-
-            const patientNameHeader = document.getElementById('patient-name-header');
-            
-            const patientModal = document.getElementById('patient-modal');
-            const openModalBtn = document.getElementById('open-modal-btn');
-            const closeModalBtn = document.getElementById('close-modal-btn');
-            const saveProfileBtn = document.getElementById('save-profile-btn');
-            
-            const patientNameInput = document.getElementById('patient-name');
-            const patientDobInput = document.getElementById('patient-dob');
-            const patientWeightInput = document.getElementById('patient-weight');
-            const patientHeightInput = document.getElementById('patient-height');
-            const patientConditionsInput = document.getElementById('patient-conditions');
-
-            const modalMedicationsListDiv = document.getElementById('modal-medications-list');
-            const medicationForm = document.getElementById('medication-form');
-            const medicationNameInput = document.getElementById('medication-name');
-            const medicationFrequencyInput = document.getElementById('medication-frequency');
+            // --- VARIÁVEIS GLOBAIS E ELEMENTOS DO DOM ---
+            const ui = {
+                appLoader: document.getElementById('app-loader'),
+                pressureForm: document.getElementById('pressure-form'),
+                dateInput: document.getElementById('date'),
+                timeInput: document.getElementById('time'),
+                systolicInput: document.getElementById('systolic'),
+                diastolicInput: document.getElementById('diastolic'),
+                tableBody: document.getElementById('history-table-body'),
+                noDataMessage: document.getElementById('no-data-message'),
+                formError: document.getElementById('form-error'),
+                chartCanvas: document.getElementById('pressureChart'),
+                analyzeBtn: document.getElementById('analyze-btn'),
+                tipBtn: document.getElementById('tip-btn'),
+                loadingSpinner: document.getElementById('loading-spinner'),
+                analysisResult: document.getElementById('analysis-result'),
+                downloadPdfBtn: document.getElementById('download-pdf-btn'),
+                patientNameHeader: document.getElementById('patient-name-header'),
+                patientModal: document.getElementById('patient-modal'),
+                modalContent: document.getElementById('modal-content'),
+                openModalBtn: document.getElementById('open-modal-btn'),
+                closeModalBtn: document.getElementById('close-modal-btn'),
+                saveProfileBtn: document.getElementById('save-profile-btn'),
+                patientNameInput: document.getElementById('patient-name'),
+                patientDobInput: document.getElementById('patient-dob'),
+                patientWeightInput: document.getElementById('patient-weight'),
+                patientHeightInput: document.getElementById('patient-height'),
+                patientConditionsInput: document.getElementById('patient-conditions'),
+                modalMedicationsListDiv: document.getElementById('modal-medications-list'),
+                medicationForm: document.getElementById('medication-form'),
+                medicationNameInput: document.getElementById('medication-name'),
+                medicationFrequencyInput: document.getElementById('medication-frequency'),
+                saveReadingBtn: document.getElementById('save-reading-btn'),
+                userInfo: document.getElementById('user-info'),
+                // Adicionados para o modal de confirmação
+                confirmationModal: document.getElementById('confirmation-modal'),
+                confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
+                cancelDeleteBtn: document.getElementById('cancel-delete-btn'),
+            };
 
             let pressureChart;
-
-            let patientProfile = JSON.parse(localStorage.getItem('patientProfile_MJM')) || {
-                name: "Maria José Martins",
-                dob: "1967-01-14",
-                weightKg: 68,
-                heightM: 1.70,
-                conditions: "Hipertensão",
-                medications: [
-                    { id: 1, name: 'Losartana Potássica', frequency: '1 vez ao dia' }
-                ]
-            };
-
-            let readings = JSON.parse(localStorage.getItem('pressureReadings_MJM')) || [
-                { id: 1, date: '2025-09-21', time: '09:30', sys: 190, dia: 100 }
-            ];
+            let patientProfile = {}; 
+            let readings = [];
+            let db, auth, userId, appId; // `appId` agora é global para evitar erros
+            let readingToDeleteId = null; // Armazena o ID do item a ser excluído
             
-            const GEMINI_API_KEY = "AIzaSyAv9EmSKxAZmyzsHOwmMXv0F-0SUaFfBUg"; 
+            // --- CONFIGURAÇÃO DA API GEMINI (SEGURA) ---
+            const GEMINI_API_KEY = "";
             const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-            
-            const savePatientProfile = () => {
-                localStorage.setItem('patientProfile_MJM', JSON.stringify(patientProfile));
+
+            const enterOfflineMode = (errorMessage = "Configuração do Firebase ausente.") => {
+                ui.appLoader.innerHTML = `
+                    <div class="text-center p-4">
+                        <h2 class="text-xl font-bold text-amber-700 mb-2">Modo de Visualização Offline</h2>
+                        <p class="text-stone-600">${errorMessage}</p>
+                        <p class="text-stone-500 text-sm mt-2">
+                            Isto é esperado ao rodar o arquivo localmente. <br>
+                            As funcionalidades de salvar e carregar dados estão desativadas.
+                        </p>
+                    </div>
+                `;
+                document.querySelectorAll('input, button, textarea').forEach(el => {
+                    el.disabled = true;
+                });
+                // Carrega dados de exemplo para visualização
+                patientProfile = { name: "Paciente (Offline)" };
+                readings = [
+                    { sys: 125, dia: 82, datetime: { seconds: Math.floor(Date.now() / 1000) - 172800 } },
+                    { sys: 135, dia: 88, datetime: { seconds: Math.floor(Date.now() / 1000) - 86400 } },
+                    { sys: 130, dia: 85, datetime: { seconds: Math.floor(Date.now() / 1000) } },
+                ];
+                renderAll();
             };
 
+            // --- CONFIGURAÇÃO DO FIREBASE ---
+            const setupFirebase = async () => {
+                try {
+                    // *******************************************************************
+                    // ** PASSO 1: COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI DENTRO {} **
+                    // Vá no seu console do Firebase -> Configurações do Projeto -> Geral
+                    // e copie o objeto de configuração (firebaseConfig).
+                    // *******************************************************************
+                    const manualFirebaseConfig = {
+                        apiKey: "AIzaSyBLwU5-wAPNI2m3PkrFFu4qDFksYa1DRF4",
+                        authDomain: "pressao-arterial-jvitor.firebaseapp.com",
+                        projectId: "pressao-arterial-jvitor",
+                        storageBucket: "pressao-arterial-jvitor.firebasestorage.app",
+                        messagingSenderId: "262625952329",
+                        appId: "1:262625952329:web:4eb36c92eb8d8c4d7b3598"
+                    };
+
+                    const firebaseConfig = Object.keys(manualFirebaseConfig).length > 1
+                        ? manualFirebaseConfig
+                        : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
+
+                    if (!firebaseConfig || !firebaseConfig.apiKey) {
+                        console.warn("AVISO: Configuração do Firebase não encontrada no código. A aplicação está rodando em modo de visualização offline.");
+                        enterOfflineMode();
+                        return;
+                    }
+                    
+                    appId = firebaseConfig.appId; // Armazena o appId na variável global
+                    if (!appId) {
+                        enterOfflineMode("appId não encontrado na configuração do Firebase.");
+                        return;
+                    }
+
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    onAuthStateChanged(auth, user => {
+                        if (user) {
+                            // O usuário já está logado, seja de uma sessão anterior ou do login anônimo.
+                            userId = user.uid;
+                            ui.userInfo.textContent = `ID do Usuário: ${userId}`;
+                            setupListeners();
+                        } else {
+                            // Se não houver usuário, simplesmente faz o login anônimo.
+                            // Isso remove a complexidade do token customizado que não se aplica ao seu caso de uso.
+                            signInAnonymously(auth).catch(error => {
+                                console.error("Erro no login anônimo:", error);
+                                enterOfflineMode("Não foi possível realizar o login anônimo.");
+                            });
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Erro ao inicializar o Firebase:", error);
+                    enterOfflineMode("Não foi possível conectar ao banco de dados.");
+                }
+            };
+
+            // --- LISTENERS DE DADOS (EM TEMPO REAL) ---
+            const setupListeners = () => {
+                if (!userId || !appId) return; // Garante que o appId esteja disponível
+                
+                // O appId global é usado para construir o caminho do documento
+                const profileDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
+                onSnapshot(profileDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        patientProfile = docSnap.data();
+                    } else {
+                        patientProfile = {
+                            name: "Maria José Martins",
+                            dob: "1967-01-14",
+                            weightKg: 68,
+                            heightM: 1.70,
+                            conditions: "Hipertensão",
+                            medications: [ { id: 1, name: 'Losartana Potássica', frequency: '1 vez ao dia' } ]
+                        };
+                        setDoc(profileDocRef, patientProfile);
+                    }
+                    renderAll();
+                    ui.appLoader.style.display = 'none';
+                });
+
+                // NOTA: A consulta 'orderBy' pode exigir a criação de um índice no Firebase.
+                // Se necessário, o Firebase fornecerá um link de erro no console para criá-lo com um clique.
+                const readingsColRef = collection(db, "artifacts", appId, "users", userId, "readings");
+                const q = query(readingsColRef, orderBy("datetime", "desc"));
+                onSnapshot(q, (querySnapshot) => {
+                    readings = [];
+                    querySnapshot.forEach((doc) => {
+                        readings.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderAll();
+                });
+            };
+
+            // --- LÓGICA DE RENDERIZAÇÃO ---
+            const renderAll = () => {
+                renderHeader();
+                renderTable();
+                renderChart();
+            };
+
+            const renderHeader = () => {
+                ui.patientNameHeader.textContent = patientProfile.name || "Paciente";
+            };
+
+            const renderTable = () => {
+                ui.tableBody.innerHTML = '';
+                if (readings.length === 0) {
+                    ui.noDataMessage.classList.remove('hidden');
+                    return;
+                }
+                ui.noDataMessage.classList.add('hidden');
+                
+                const sortedReadings = [...readings].sort((a,b) => (b.datetime.seconds || 0) - (a.datetime.seconds || 0));
+
+                sortedReadings.forEach(reading => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-stone-200 hover:bg-stone-50';
+                    const classification = classifyPressure(reading.sys, reading.dia);
+                    const date = new Date((reading.datetime.seconds || 0) * 1000);
+                    const formattedDate = date.toLocaleDateString('pt-BR');
+                    const formattedTime = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                    row.innerHTML = `
+                        <td class="p-3">${formattedDate}</td>
+                        <td class="p-3">${formattedTime}</td>
+                        <td class="p-3 font-medium">${reading.sys} / ${reading.dia}</td>
+                        <td class="p-3">
+                            <span class="pressure-badge ${classification.colorClass} ${classification.textColorClass}">${classification.label}</span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button data-id="${reading.id}" class="delete-btn text-red-500 hover:text-red-700 font-semibold text-sm">Excluir</button>
+                        </td>
+                    `;
+                    ui.tableBody.appendChild(row);
+                });
+            };
+
+            const renderChart = () => {
+                const sortedReadings = [...readings].sort((a, b) => (a.datetime.seconds || 0) - (b.datetime.seconds || 0));
+
+                const labels = sortedReadings.map(r => {
+                    const d = new Date((r.datetime.seconds || 0) * 1000);
+                    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+                });
+                const sysData = sortedReadings.map(r => r.sys);
+                const diaData = sortedReadings.map(r => r.dia);
+
+                const data = {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Sistólica (SYS)', data: sysData, borderColor: '#b91c1c', backgroundColor: 'rgba(185, 28, 28, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 },
+                        { label: 'Diastólica (DIA)', data: diaData, borderColor: '#047857', backgroundColor: 'rgba(4, 120, 87, 0.5)', tension: 0.1, pointRadius: 5, pointHoverRadius: 8 }
+                    ]
+                };
+
+                if (pressureChart) {
+                    pressureChart.data = data;
+                    pressureChart.update();
+                } else {
+                    pressureChart = new Chart(ui.chartCanvas, {
+                        type: 'line', data: data,
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: false, title: { display: true, text: 'mmHg' } } },
+                            plugins: {
+                                legend: { position: 'top' },
+                                tooltip: { callbacks: { label: (c) => `${c.dataset.label || ''}: ${c.parsed.y} mmHg` } }
+                            }
+                        }
+                    });
+                }
+            };
+
+            const populatePatientForm = () => {
+                ui.patientNameInput.value = patientProfile.name || '';
+                ui.patientDobInput.value = patientProfile.dob || '';
+                ui.patientWeightInput.value = patientProfile.weightKg || '';
+                ui.patientHeightInput.value = patientProfile.heightM || '';
+                ui.patientConditionsInput.value = patientProfile.conditions || '';
+                renderMedicationsList();
+            };
+
+            const renderMedicationsList = () => {
+                ui.modalMedicationsListDiv.innerHTML = '';
+                if (!patientProfile.medications || patientProfile.medications.length === 0) {
+                    ui.modalMedicationsListDiv.innerHTML = '<p class="text-stone-500 text-sm">Nenhuma medicação adicionada.</p>';
+                } else {
+                    patientProfile.medications.forEach(med => {
+                        const medEl = document.createElement('div');
+                        medEl.className = 'flex justify-between items-center bg-stone-100 p-2 rounded-lg';
+                        medEl.innerHTML = `
+                            <span class="text-sm"><span class="font-semibold">${med.name}</span> - ${med.frequency}</span>
+                            <button data-id="${med.id}" class="delete-med-btn text-red-500 hover:text-red-700 text-xs font-bold">EXCLUIR</button>
+                        `;
+                        ui.modalMedicationsListDiv.appendChild(medEl);
+                    });
+                }
+            };
+            
+            // --- FUNÇÕES DE LÓGICA E UTILITÁRIOS ---
+
+            const classifyPressure = (sys, dia) => {
+                if (sys < 120 && dia < 80) return { label: 'Ótima', colorClass: 'bg-green-100', textColorClass: 'text-green-800' };
+                if (sys < 130 && dia < 85) return { label: 'Normal', colorClass: 'bg-blue-100', textColorClass: 'text-blue-800' };
+                if (sys < 140 || dia < 90) return { label: 'Limítrofe', colorClass: 'bg-yellow-100', textColorClass: 'text-yellow-800' };
+                if (sys < 160 || dia < 100) return { label: 'Hipertensão Leve', colorClass: 'bg-orange-100', textColorClass: 'text-orange-800' };
+                if (sys < 180 || dia < 110) return { label: 'Hipertensão Moderada', colorClass: 'bg-red-100', textColorClass: 'text-red-800' };
+                return { label: 'Hipertensão Grave', colorClass: 'bg-red-200', textColorClass: 'text-red-900' };
+            };
+            
             const getAge = (dobString) => {
                 if (!dobString) return '';
                 const birthDate = new Date(dobString);
@@ -268,343 +531,195 @@
                 return age;
             };
 
-            const renderHeader = () => {
-                patientNameHeader.textContent = patientProfile.name || "Paciente";
-            };
-            
-            const populatePatientForm = () => {
-                patientNameInput.value = patientProfile.name || '';
-                patientDobInput.value = patientProfile.dob || '';
-                patientWeightInput.value = patientProfile.weightKg || '';
-                patientHeightInput.value = patientProfile.heightM || '';
-                patientConditionsInput.value = patientProfile.conditions || '';
-                renderMedicationsList();
+            const setDefaultDateTime = () => {
+                const now = new Date();
+                ui.dateInput.value = now.toISOString().split('T')[0];
+                ui.timeInput.value = now.toTimeString().slice(0, 5);
             };
 
-            const renderMedicationsList = () => {
-                modalMedicationsListDiv.innerHTML = '';
-                if (!patientProfile.medications || patientProfile.medications.length === 0) {
-                    modalMedicationsListDiv.innerHTML = '<p class="text-stone-500 text-sm">Nenhuma medicação adicionada.</p>';
+            const toggleModal = (show) => {
+                if (show) {
+                    populatePatientForm();
+                    ui.patientModal.classList.remove('hidden');
+                    setTimeout(() => {
+                        ui.patientModal.classList.remove('opacity-0');
+                        ui.modalContent.classList.remove('scale-95');
+                    }, 10);
                 } else {
-                    patientProfile.medications.forEach(med => {
-                        const medEl = document.createElement('div');
-                        medEl.className = 'flex justify-between items-center bg-stone-100 p-2 rounded-lg';
-                        medEl.innerHTML = `
-                            <span class="text-sm">
-                                <span class="font-semibold">${med.name}</span> - ${med.frequency}
-                            </span>
-                            <button data-id="${med.id}" class="delete-med-btn text-red-500 hover:text-red-700 text-xs font-bold">EXCLUIR</button>
-                        `;
-                        modalMedicationsListDiv.appendChild(medEl);
-                    });
+                    ui.patientModal.classList.add('opacity-0');
+                    ui.modalContent.classList.add('scale-95');
+                    setTimeout(() => ui.patientModal.classList.add('hidden'), 250);
                 }
             };
-            
-            const handleSaveProfile = () => {
-                patientProfile.name = patientNameInput.value.trim();
-                patientProfile.dob = patientDobInput.value;
-                patientProfile.weightKg = parseFloat(patientWeightInput.value) || 0;
-                patientProfile.heightM = parseFloat(patientHeightInput.value) || 0;
-                patientProfile.conditions = patientConditionsInput.value.trim();
-                savePatientProfile();
-                renderAll();
-                toggleModal(false);
-            };
 
-            const callGeminiAPI = async (payload, maxRetries = 3) => {
-                let attempt = 0;
-                while (attempt < maxRetries) {
-                    try {
-                        const response = await fetch(GEMINI_API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        if (!response.ok) {
-                           const errorBody = await response.json();
-                           console.error('Erro na API Gemini:', errorBody);
-                           if (errorBody.error && errorBody.error.message.includes("API key not valid")) {
-                               return "Erro: A chave de API não é válida. Verifique a chave no código e tente novamente.";
-                           }
-                           throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-
-                        const result = await response.json();
-                        if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
-                            return result.candidates[0].content.parts[0].text;
-                        } else {
-                            const finishReason = result.candidates?.[0]?.finishReason;
-                            if (finishReason && finishReason !== 'STOP') {
-                                return `A análise não pôde ser gerada. Motivo: ${finishReason}. Tente novamente.`;
-                            }
-                            throw new Error('Resposta da API inválida ou vazia.');
-                        }
-                    } catch (error) {
-                        attempt++;
-                        console.error(`Tentativa ${attempt} de chamar a API Gemini falhou:`, error);
-                        if (attempt >= maxRetries) {
-                            return "Desculpe, não foi possível obter uma resposta da análise inteligente no momento. Verifique sua conexão e a chave de API.";
-                        }
-                        const delay = Math.pow(2, attempt) * 1000;
-                        await new Promise(res => setTimeout(res, delay));
-                    }
+            // --- LÓGICA DA API GEMINI ---
+            const callGeminiAPI = async (payload) => {
+                 try {
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível gerar a resposta.";
+                } catch (error) {
+                    console.error("Erro na API Gemini:", error);
+                    return "Desculpe, ocorreu um erro ao contatar a análise inteligente.";
                 }
             };
             
             const handleAnalysis = async () => {
                 if (readings.length === 0) {
-                    analysisResult.textContent = "Não há dados suficientes para uma análise. Por favor, adicione algumas medições primeiro.";
+                    ui.analysisResult.textContent = "Adicione medições para gerar uma análise.";
                     return;
                 }
-
-                loadingSpinner.classList.remove('hidden');
-                analysisResult.textContent = '';
+                ui.loadingSpinner.classList.remove('hidden');
+                ui.analysisResult.textContent = '';
                 
                 const formattedReadings = readings
-                    .map(r => `${new Date(r.date + 'T' + r.time).toLocaleDateString('pt-BR')} ${r.time} - ${r.sys}/${r.dia}`)
+                    .map(r => `${new Date(r.datetime.seconds*1000).toLocaleString('pt-BR')} - ${r.sys}/${r.dia}`)
                     .join('\n');
                 
-                const medicationsText = patientProfile.medications && patientProfile.medications.length > 0
-                    ? patientProfile.medications.map(m => `- ${m.name} (${m.frequency})`).join('\n')
-                    : 'Nenhuma medicação informada.';
-
-                const patientData = `Dados do paciente:
-                - Nome: ${patientProfile.name}
-                - Idade: ${getAge(patientProfile.dob)} anos
-                - Peso: ${patientProfile.weightKg} kg
-                - Altura: ${patientProfile.heightM} m
-                - Condições de saúde: ${patientProfile.conditions || 'Nenhuma informada'}
-                - Medicações em uso:\n${medicationsText}`;
-
-                const systemPrompt = "Você é um assistente de saúde virtual. Sua função é analisar dados de pressão arterial e fornecer um resumo geral e dicas de estilo de vida em português do Brasil, considerando os dados do paciente, incluindo suas medicações. NÃO FORNEÇA ACONSELHAMENTO MÉDICO. Sempre inclua um aviso claro para consultar um médico para obter orientação profissional. Formate a resposta de forma clara e amigável.";
-                const userQuery = `Analise as seguintes leituras de pressão arterial (Sistólica/Diastólica) para a paciente abaixo e forneça um resumo das tendências.\n\n${patientData}\n\nLeituras:\n${formattedReadings}\n\nDestaque quaisquer padrões e ofereça dicas gerais de estilo de vida para controle da pressão arterial.`;
+                const medicationsText = patientProfile.medications?.map(m => `- ${m.name} (${m.frequency})`).join('\n') || 'Nenhuma.';
+                const patientData = `Dados: Nome: ${patientProfile.name}, Idade: ${getAge(patientProfile.dob)}, Condições: ${patientProfile.conditions || 'N/A'}, Medicações:\n${medicationsText}`;
                 
-                const payload = {
-                    contents: [{ parts: [{ text: userQuery }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] }
-                };
-
-                const responseText = await callGeminiAPI(payload);
-                analysisResult.textContent = responseText;
-                loadingSpinner.classList.add('hidden');
+                const systemPrompt = "Você é um assistente de saúde virtual. Analise dados de pressão arterial e forneça um resumo geral em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO. Sempre inclua um aviso claro para consultar um médico. Formate a resposta de forma amigável.";
+                const userQuery = `Analise as leituras de pressão (Sistólica/Diastólica) para a paciente e resuma as tendências.\n\n${patientData}\n\nLeituras:\n${formattedReadings}`;
+                
+                const responseText = await callGeminiAPI({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } });
+                ui.analysisResult.textContent = responseText;
+                ui.loadingSpinner.classList.add('hidden');
             };
             
             const handleTipRequest = async () => {
-                loadingSpinner.classList.remove('hidden');
-                analysisResult.textContent = '';
-
-                const systemPrompt = "Você é um assistente de saúde virtual. Forneça uma dica de saúde concisa e prática para o controle da pressão arterial, em português do Brasil. A dica deve ser fácil de entender e aplicar no dia a dia. NÃO FORNEÇA ACONSELHAMENTO MÉDICO.";
+                ui.loadingSpinner.classList.remove('hidden');
+                ui.analysisResult.textContent = '';
+                const systemPrompt = "Você é um assistente de saúde virtual. Forneça uma dica de saúde concisa e prática para controle da pressão arterial, em português do Brasil. NÃO FORNEÇA ACONSELHAMENTO MÉDICO.";
                 const userQuery = "Gere uma dica de saúde sobre controle da pressão arterial.";
-                
-                const payload = {
-                    contents: [{ parts: [{ text: userQuery }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                const responseText = await callGeminiAPI({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } });
+                ui.analysisResult.textContent = responseText;
+                ui.loadingSpinner.classList.add('hidden');
+            };
+
+            // --- HANDLERS DE EVENTOS ---
+            const handleSaveProfile = async () => {
+                // O appId global é usado para construir o caminho do documento
+                const updatedProfile = {
+                    name: ui.patientNameInput.value.trim(),
+                    dob: ui.patientDobInput.value,
+                    weightKg: parseFloat(ui.patientWeightInput.value) || 0,
+                    heightM: parseFloat(ui.patientHeightInput.value) || 0,
+                    conditions: ui.patientConditionsInput.value.trim(),
+                    medications: patientProfile.medications || []
                 };
-                
-                const responseText = await callGeminiAPI(payload);
-                analysisResult.textContent = responseText;
-                loadingSpinner.classList.add('hidden');
+                const profileDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
+                await setDoc(profileDocRef, updatedProfile, { merge: true });
+                toggleModal(false);
             };
 
-            analyzeBtn.addEventListener('click', handleAnalysis);
-            tipBtn.addEventListener('click', handleTipRequest);
-
-            const saveReadings = () => {
-                localStorage.setItem('pressureReadings_MJM', JSON.stringify(readings));
-            };
-            
-            const formatPressureValue = (value) => {
-                const num = parseInt(value, 10);
-                if (isNaN(num)) return '000';
-                return String(num); // PDF doesn't need padding
-            };
-
-            const renderTable = () => {
-                tableBody.innerHTML = '';
-                if (readings.length === 0) {
-                    noDataMessage.classList.remove('hidden');
-                    return;
-                }
-                noDataMessage.classList.add('hidden');
-                
-                const sortedReadings = [...readings].sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
-
-                sortedReadings.forEach(reading => {
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-stone-200 hover:bg-stone-50';
-                    
-                    const formattedDate = new Date(reading.date + 'T00:00:00').toLocaleDateString('pt-BR');
-
-                    row.innerHTML = `
-                        <td class="p-3">${formattedDate}</td>
-                        <td class="p-3">${reading.time}</td>
-                        <td class="p-3 font-medium">${reading.sys} / ${reading.dia}</td>
-                        <td class="p-3 text-center">
-                            <button data-id="${reading.id}" class="delete-btn text-red-500 hover:text-red-700 font-semibold text-sm">Excluir</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            };
-
-            const renderChart = () => {
-                const sortedReadings = [...readings].sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
-
-                const labels = sortedReadings.map(r => {
-                     const d = new Date(r.date + 'T' + r.time);
-                     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + r.time;
-                });
-                const sysData = sortedReadings.map(r => r.sys);
-                const diaData = sortedReadings.map(r => r.dia);
-
-                const data = {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Sistólica (SYS)',
-                            data: sysData,
-                            borderColor: '#b91c1c', // red-700
-                            backgroundColor: 'rgba(185, 28, 28, 0.5)',
-                            tension: 0.1,
-                            pointRadius: 5,
-                            pointHoverRadius: 8
-                        },
-                        {
-                            label: 'Diastólica (DIA)',
-                            data: diaData,
-                            borderColor: '#047857', // emerald-700
-                            backgroundColor: 'rgba(4, 120, 87, 0.5)',
-                            tension: 0.1,
-                            pointRadius: 5,
-                            pointHoverRadius: 8
-                        }
-                    ]
-                };
-
-                if (pressureChart) {
-                    pressureChart.data = data;
-                    pressureChart.update();
-                } else {
-                    const config = {
-                        type: 'line',
-                        data: data,
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: { beginAtZero: false, title: { display: true, text: 'mmHg' } }
-                            },
-                            plugins: {
-                                legend: { position: 'top' },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.dataset.label || '';
-                                            if (label) { label += ': '; }
-                                            if (context.parsed.y !== null) { label += `${context.parsed.y} mmHg`; }
-                                            return label;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    pressureChart = new Chart(chartCanvas, config);
-                }
-            };
-            
-            const setDefaultDateTime = () => {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                dateInput.value = `${year}-${month}-${day}`;
-                
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                timeInput.value = `${hours}:${minutes}`;
-            };
-
-            pressureForm.addEventListener('submit', (e) => {
+            ui.pressureForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                formError.classList.add('hidden');
+                ui.formError.classList.add('hidden');
+                const sys = parseInt(ui.systolicInput.value);
+                const dia = parseInt(ui.diastolicInput.value);
 
-                const sys = parseInt(systolicInput.value);
-                const dia = parseInt(diastolicInput.value);
-
-                if (isNaN(sys) || isNaN(dia) || sys <= 0 || dia <= 0) {
-                    formError.textContent = 'Por favor, insira valores numéricos válidos para a pressão.';
-                    formError.classList.remove('hidden');
-                    return;
-                }
-                 if (sys < dia) {
-                    formError.textContent = 'A pressão sistólica deve ser maior que a diastólica.';
-                    formError.classList.remove('hidden');
+                if (isNaN(sys) || isNaN(dia) || sys <= 0 || dia <= 0 || sys < dia) {
+                    ui.formError.textContent = 'Valores inválidos. A sistólica deve ser maior que a diastólica.';
+                    ui.formError.classList.remove('hidden');
                     return;
                 }
 
+                const dateTimeString = `${ui.dateInput.value}T${ui.timeInput.value}`;
+                
                 const newReading = {
-                    id: Date.now(),
-                    date: dateInput.value,
-                    time: timeInput.value,
+                    datetime: new Date(dateTimeString),
                     sys: sys,
                     dia: dia
                 };
 
-                readings.push(newReading);
-                saveReadings();
-                renderAll();
-                pressureForm.reset();
-                setDefaultDateTime();
-            });
-            
-            tableBody.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-btn')) {
-                    const idToDelete = parseInt(e.target.getAttribute('data-id'));
-                    readings = readings.filter(r => r.id !== idToDelete);
-                    saveReadings();
-                    renderAll();
+                const originalButtonText = ui.saveReadingBtn.innerHTML;
+                ui.saveReadingBtn.innerHTML = 'Salvando...';
+                ui.saveReadingBtn.disabled = true;
+
+                try {
+                    // O appId global é usado para construir o caminho do documento
+                    const readingsColRef = collection(db, "artifacts", appId, "users", userId, "readings");
+                    await addDoc(readingsColRef, newReading);
+                    
+                    ui.saveReadingBtn.innerHTML = 'Salvo!';
+                    ui.saveReadingBtn.classList.replace('bg-teal-600', 'bg-green-600');
+                    ui.pressureForm.reset();
+                    setDefaultDateTime();
+
+                } catch (error) {
+                    console.error("Erro ao salvar medição: ", error);
+                    ui.formError.textContent = 'Erro ao salvar. Tente novamente.';
+                    ui.formError.classList.remove('hidden');
+                    ui.saveReadingBtn.innerHTML = 'Erro!';
+                    ui.saveReadingBtn.classList.replace('bg-teal-600', 'bg-red-600');
+                } finally {
+                    setTimeout(() => {
+                        ui.saveReadingBtn.innerHTML = originalButtonText;
+                        ui.saveReadingBtn.disabled = false;
+                        ui.saveReadingBtn.classList.replace('bg-green-600', 'bg-teal-600');
+                        ui.saveReadingBtn.classList.replace('bg-red-600', 'bg-teal-600');
+                    }, 2000);
                 }
             });
             
-            medicationForm.addEventListener('submit', (e) => {
+            ui.tableBody.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (deleteBtn) {
+                    readingToDeleteId = deleteBtn.getAttribute('data-id');
+                    toggleConfirmationModal(true);
+                }
+            });
+            
+            ui.medicationForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const name = medicationNameInput.value.trim();
-                const frequency = medicationFrequencyInput.value.trim();
-
+                const name = ui.medicationNameInput.value.trim();
+                const frequency = ui.medicationFrequencyInput.value.trim();
                 if (name && frequency) {
-                    const newMed = {
-                        id: Date.now(),
-                        name: name,
-                        frequency: frequency
-                    };
-                    if (!patientProfile.medications) {
-                        patientProfile.medications = [];
-                    }
-                    patientProfile.medications.push(newMed);
+                    const newMed = { id: Date.now(), name, frequency };
+                    patientProfile.medications = [...(patientProfile.medications || []), newMed];
                     renderMedicationsList();
-                    medicationForm.reset();
+                    ui.medicationForm.reset();
                 }
             });
 
-            modalMedicationsListDiv.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-med-btn')) {
-                    const idToDelete = parseInt(e.target.getAttribute('data-id'));
+            ui.modalMedicationsListDiv.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-med-btn');
+                if (deleteBtn) {
+                    const idToDelete = parseInt(deleteBtn.getAttribute('data-id'));
                     patientProfile.medications = patientProfile.medications.filter(m => m.id !== idToDelete);
                     renderMedicationsList();
                 }
             });
-
+            
             const handleDownloadPdf = () => {
+                if (readings.length === 0) {
+                    const originalText = ui.downloadPdfBtn.textContent;
+                    ui.downloadPdfBtn.textContent = "Nenhum dado para baixar!";
+                    ui.downloadPdfBtn.disabled = true;
+                    setTimeout(() => { 
+                        ui.downloadPdfBtn.textContent = originalText;
+                        ui.downloadPdfBtn.disabled = false;
+                    }, 2000);
+                    return;
+                }
+
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
                 
+                const patientName = patientProfile.name || 'paciente';
+                let yPos = 22;
+
                 doc.setFontSize(18);
-                doc.text("Relatório de Pressão Arterial", 14, 22);
+                doc.text("Relatório de Pressão Arterial", 14, yPos);
+                yPos += 10;
                 
                 doc.setFontSize(11);
-                let yPos = 32;
                 doc.text(`Paciente: ${patientProfile.name || 'Não informado'}`, 14, yPos); 
                 yPos += 7;
                 const age = getAge(patientProfile.dob);
@@ -624,82 +739,127 @@
                     doc.text("- Nenhuma medicação informada.", 14, yPos);
                     yPos += 5;
                 }
+                yPos += 5;
 
-                const tableColumn = ["Data", "Hora", "Pressão (SIS/DIA)"];
+                try {
+                    const chartImage = ui.chartCanvas.toDataURL('image/png', 1.0);
+                    const contentWidth = doc.internal.pageSize.getWidth() - 28;
+                    const chartAspectRatio = ui.chartCanvas.width / ui.chartCanvas.height;
+                    const chartHeight = contentWidth / chartAspectRatio;
+
+                    if (yPos + chartHeight > doc.internal.pageSize.getHeight() - 20) {
+                         doc.addPage();
+                         yPos = 20;
+                    }
+
+                    doc.addImage(chartImage, 'PNG', 14, yPos, contentWidth, chartHeight);
+                    yPos += chartHeight + 10;
+                } catch (e) {
+                    console.error("Erro ao adicionar o gráfico ao PDF:", e);
+                    doc.text("Não foi possível gerar a imagem do gráfico.", 14, yPos);
+                    yPos += 7;
+                }
+
+                const tableColumn = ["Data", "Hora", "Pressão (SIS/DIA)", "Classificação"];
                 const tableRows = [];
-
-                const sortedReadings = [...readings].sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+                const sortedReadings = [...readings].sort((a, b) => a.datetime.seconds - b.datetime.seconds);
 
                 sortedReadings.forEach(reading => {
-                    const readingData = [
-                        new Date(reading.date + 'T00:00:00').toLocaleDateString('pt-BR'),
-                        reading.time,
-                        `${formatPressureValue(reading.sys)} / ${formatPressureValue(reading.dia)}`
-                    ];
-                    tableRows.push(readingData);
+                    const date = new Date(reading.datetime.seconds * 1000);
+                    const classification = classifyPressure(reading.sys, reading.dia);
+                    tableRows.push([
+                        date.toLocaleDateString('pt-BR'),
+                        date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        `${reading.sys} / ${reading.dia}`,
+                        classification.label
+                    ]);
                 });
                 
                 doc.autoTable({
                     head: [tableColumn],
                     body: tableRows,
-                    startY: yPos + 2,
+                    startY: yPos,
+                    theme: 'striped',
+                    headStyles: { fillColor: [13, 148, 136] } // Cor Teal
                 });
                 
-                // --- ASSINATURA NO PDF ---
                 const pageHeight = doc.internal.pageSize.getHeight();
-                doc.setFontSize(8);
-                doc.setTextColor(150); // Cor cinza discreta
-                const signatureText = "Controle de Pressão Arterial desenvolvido por: ";
-                const signatureName = "J. Vitor Martins";
-                const textWidth = doc.getStringUnitWidth(signatureText + signatureName) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-                const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2; // Centralizado
+                const totalPages = doc.internal.getNumberOfPages();
 
-                doc.setFont('helvetica', 'normal');
-                doc.text(signatureText, textX, pageHeight - 10);
-                
-                const nameX = textX + doc.getStringUnitWidth(signatureText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-                doc.setFont('helvetica', 'italic');
-                doc.text(signatureName, nameX, pageHeight - 10);
-                // --- FIM DA ASSINATURA ---
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    const signatureText = "Relatório gerado por Controle de Pressão Arterial | Desenvolvido por J. Vitor Martins";
+                    const textWidth = doc.getStringUnitWidth(signatureText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                    const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
+                    doc.text(signatureText, textX, pageHeight - 10);
+                    if (totalPages > 1) {
+                         doc.text(`Página ${i} de ${totalPages}`, doc.internal.pageSize.getWidth() - 25, pageHeight - 10);
+                    }
+                }
 
-                const fileName = `relatorio_pressao_${(patientProfile.name || 'paciente').replace(/ /g, "_")}.pdf`;
+                const fileName = `relatorio_pressao_${patientName.replace(/ /g, "_")}.pdf`;
                 doc.save(fileName);
             };
+            
+            ui.downloadPdfBtn.addEventListener('click', handleDownloadPdf);
 
-            downloadPdfBtn.addEventListener('click', handleDownloadPdf);
+            // Eventos do Modal
+            ui.openModalBtn.addEventListener('click', () => toggleModal(true));
+            ui.closeModalBtn.addEventListener('click', () => toggleModal(false));
+            ui.saveProfileBtn.addEventListener('click', handleSaveProfile);
+            ui.patientModal.addEventListener('click', (e) => {
+                if (e.target === ui.patientModal) toggleModal(false);
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === "Escape" && !ui.patientModal.classList.contains('hidden')) {
+                    toggleModal(false);
+                }
+            });
 
-            const toggleModal = (show) => {
-                const modalContent = patientModal.querySelector('div');
+            // Lógica do Modal de Confirmação
+            const toggleConfirmationModal = (show) => {
+                const modalContent = ui.confirmationModal.querySelector('div');
                 if (show) {
-                    populatePatientForm();
-                    patientModal.classList.remove('hidden');
+                    ui.confirmationModal.classList.remove('hidden');
                     setTimeout(() => {
-                        patientModal.classList.remove('opacity-0');
+                        ui.confirmationModal.classList.remove('opacity-0');
                         modalContent.classList.remove('scale-95');
                     }, 10);
                 } else {
-                    patientModal.classList.add('opacity-0');
+                    ui.confirmationModal.classList.add('opacity-0');
                     modalContent.classList.add('scale-95');
-                    setTimeout(() => {
-                        patientModal.classList.add('hidden');
-                    }, 250);
+                    setTimeout(() => ui.confirmationModal.classList.add('hidden'), 250);
                 }
             };
-            
-            openModalBtn.addEventListener('click', () => toggleModal(true));
-            closeModalBtn.addEventListener('click', () => toggleModal(false));
-            saveProfileBtn.addEventListener('click', handleSaveProfile);
 
-            function renderAll() {
-                renderHeader();
-                renderTable();
-                renderChart();
-            }
-            
+            ui.cancelDeleteBtn.addEventListener('click', () => {
+                toggleConfirmationModal(false);
+                readingToDeleteId = null;
+            });
+
+            ui.confirmDeleteBtn.addEventListener('click', async () => {
+                if (readingToDeleteId) {
+                    const readingDocRef = doc(db, "artifacts", appId, "users", userId, "readings", readingToDeleteId);
+                    await deleteDoc(readingDocRef);
+                    toggleConfirmationModal(false);
+                    readingToDeleteId = null;
+                }
+            });
+
+            ui.analyzeBtn.addEventListener('click', handleAnalysis);
+            ui.tipBtn.addEventListener('click', handleTipRequest);
+
+            // --- INICIALIZAÇÃO ---
             setDefaultDateTime();
-            renderAll();
+            setupFirebase();
         });
     </script>
 </body>
 </html>
+
+
+
+
 
